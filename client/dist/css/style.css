@@ -701,6 +701,55 @@ button.off { opacity: .38; text-decoration: line-through; }
 
 /* Mobile: compact */
 @media (max-width: 720px) {
+  /* Side panels flank the table on mobile too */
+  #opp-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 6px;
+  }
+  #opp-left, #opp-right {
+    flex: 0 0 72px;
+    display: flex;
+  }
+  #opp-left .opp, #opp-right .opp {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 4px;
+    min-width: 0;
+  }
+  #opp-left .opp-head, #opp-right .opp-head {
+    flex-direction: column;
+    align-items: center;
+  }
+  #opp-left .avatar, #opp-right .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+  #opp-left .pname, #opp-right .pname {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 64px;
+  }
+  #opp-left .pmeta, #opp-right .pmeta {
+    font-size: 11px;
+    color: #ffd700;
+    font-weight: 700;
+  }
+  #opp-left .tag, #opp-right .tag {
+    display: none;
+  }
+  #table-mid {
+    flex: 1;
+    min-width: 0;
+  }
   #center-table { min-height: 190px; }
   .table-cards .card {
     width: clamp(40px, 10vw, 54px);
