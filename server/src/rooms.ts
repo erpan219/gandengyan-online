@@ -17,16 +17,18 @@ export class Room {
   code: string;
   playerCount: 3 | 4;
   fillWithBots: boolean;
+  noShuffle: boolean;
   hostId: string;
   seats: Seat[];
   phase: RoomPhase;
   lastActivity = Date.now();
   game: unknown = null;
 
-  constructor(code: string, playerCount: 3 | 4, fillWithBots: boolean) {
+  constructor(code: string, playerCount: 3 | 4, fillWithBots: boolean, noShuffle = false) {
     this.code = code;
     this.playerCount = playerCount;
     this.fillWithBots = fillWithBots;
+    this.noShuffle = noShuffle;
     this.hostId = '';
     this.seats = Array.from({ length: playerCount }, (_, i): Seat => ({
       playerId: `empty:${i}`,
@@ -112,6 +114,27 @@ export class Room {
 
   getSeat(playerId: string): Seat | undefined {
     return this.seats.find((s) => s.playerId === playerId);
+  }
+
+  /** Convert a disconnected human seat to a bot so AI takes over instantly. */
+  takeoverByAI(playerId: string): boolean {
+    const seat = this.getSeat(playerId);
+    if (!seat || seat.isBot || seat.playerId.startsWith('empty:')) return false;
+    seat.isBot = true;
+    seat.connected = true;
+    seat.name = seat.name + ' (AI)';
+    this.touch();
+    return true;
+  }
+
+  /** Reclaim a bot seat back to human on reconnect with valid token. */
+  reclaimFromAI(playerId: string): boolean {
+    const seat = this.getSeat(playerId);
+    if (!seat || !seat.isBot) return false;
+    seat.isBot = false;
+    seat.name = seat.name.replace(/ \(AI\)$/, '');
+    this.touch();
+    return true;
   }
 
   seatInfo(): SeatInfo[] {

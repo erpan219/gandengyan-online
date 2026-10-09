@@ -19,10 +19,11 @@ export class RoomManager {
   createRoom(
     playerCount: 3 | 4,
     fillWithBots: boolean,
-    hostName: string
+    hostName: string,
+    noShuffle = false
   ): { room: Room; hostSeat: Seat } {
     const code = this.makeCode();
-    const room = new Room(code, playerCount, fillWithBots);
+    const room = new Room(code, playerCount, fillWithBots, noShuffle);
     const hostSeat = room.addHuman(hostName);
     room.hostId = hostSeat.playerId;
     this.rooms.set(code, room);

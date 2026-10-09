@@ -41,6 +41,8 @@ type Strings = {
   startGame: string;
   waitingHost: string;
   fillBots: string;
+  noShuffle: string;
+  noShuffleDesc: string;
   copyCode: string;
   copied: string;
   leaveRoom: string;
@@ -93,6 +95,8 @@ export const STRINGS: Record<'zh' | 'en', Strings> = {
     startGame: '开始游戏',
     waitingHost: '等待房主开始…',
     fillBots: '空位由机器人补齐',
+    noShuffle: '不洗牌',
+    noShuffleDesc: '炸弹满天飞',
     copyCode: '复制房间号',
     copied: '已复制！',
     leaveRoom: '离开房间',
@@ -143,6 +147,8 @@ export const STRINGS: Record<'zh' | 'en', Strings> = {
     startGame: 'Start Game',
     waitingHost: 'Waiting for host…',
     fillBots: 'Fill empty seats with bots',
+    noShuffle: 'No-shuffle',
+    noShuffleDesc: 'bombs everywhere',
     copyCode: 'Copy code',
     copied: 'Copied!',
     leaveRoom: 'Leave room',

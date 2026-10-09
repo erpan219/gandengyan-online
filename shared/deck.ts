@@ -56,3 +56,15 @@ export function shuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
   }
   return a;
 }
+
+/** Barely shuffle: only a few random swaps, so same ranks stay clumped (bombs everywhere). */
+export function barelyShuffle<T>(arr: T[], rand: () => number = Math.random): T[] {
+  const a = [...arr];
+  const swaps = 8 + Math.floor(rand() * 5); // 8-12 swaps
+  for (let k = 0; k < swaps; k++) {
+    const i = Math.floor(rand() * a.length);
+    const j = Math.floor(rand() * a.length);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}

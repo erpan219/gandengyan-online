@@ -1,5 +1,5 @@
 import { newHand, applyAction, getPlayerView } from "../../shared/engine.js";
-import { createDeck, shuffle } from "../../shared/deck.js";
+import { createDeck, shuffle, barelyShuffle } from "../../shared/deck.js";
 import { chooseBotMove } from "../../shared/bot.js";
 import type { GameState, PlayerView, CardId } from "../../shared/types.js";
 import { Room, Seat } from "./rooms.js";
@@ -35,7 +35,8 @@ export class Match {
     const seatIds = this.seatIds();
     if (seatIds.length === 0) return;
 
-    const shuffled: CardId[] = shuffle(createDeck().map((card) => card.id));
+    const deckIds = createDeck().map((card) => card.id);
+    const shuffled: CardId[] = this.room.noShuffle ? barelyShuffle(deckIds) : shuffle(deckIds);
     const n = seatIds.length;
     let leader = leaderId && seatIds.includes(leaderId) ? leaderId : seatIds[0];
     let startSeatIndex = seatIds.indexOf(leader);

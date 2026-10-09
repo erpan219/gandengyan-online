@@ -185,6 +185,10 @@ wss.on('connection', (ws: WebSocket) => {
         if (!found) break;
         seat = found.seat;
         roomCode = found.room.code;
+        // Reclaim seat if AI took over during disconnect
+        if (seat.isBot) {
+          found.room.reclaimFromAI(seat.playerId);
+        }
         attachSeat(ws, seat);
         welcome(seat);
         broadcastRoom(found.room);
@@ -197,7 +201,7 @@ wss.on('connection', (ws: WebSocket) => {
       case 'CREATE_ROOM': {
         const name = msg.name.trim().slice(0, 20) || 'Player';
         const pc = msg.playerCount === 4 ? 4 : 3;
-        const { room, hostSeat } = manager.createRoom(pc, msg.fillWithBots, name);
+        const { room, hostSeat } = manager.createRoom(pc, msg.fillWithBots, name, msg.noShuffle ?? false);
         seat = hostSeat;
         roomCode = room.code;
         attachSeat(ws, seat);
@@ -294,7 +298,15 @@ wss.on('connection', (ws: WebSocket) => {
   });
 
   ws.on('close', () => {
-    detachSeat(seat);
+    const room = currentRoom();
+    // AI takes over instantly if a player disconnects mid-game
+    if (room && room.phase === 'PLAYING' && seat && !seat.isBot) {
+      room.takeoverByAI(seat.playerId);
+      // If it was their turn, trigger the bot to move
+      currentMatch(room)?.onTimeout(seat.playerId);
+    } else {
+      detachSeat(seat);
+    }
     broadcastRoom(currentRoom());
   });
 

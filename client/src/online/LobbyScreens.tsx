@@ -58,6 +58,7 @@ export function OnlineLobby(props: {
   const [name, setName] = useState(localStorage.getItem('gdy-name') || '');
   const [playerCount, setPlayerCount] = useState<3 | 4>(3);
   const [fillBots, setFillBots] = useState(true);
+  const [noShuffle, setNoShuffle] = useState(false);
   const [roomCode, setRoomCode] = useState('');
 
   const saveName = () => {
@@ -102,6 +103,15 @@ export function OnlineLobby(props: {
           {t.fillBots}
         </label>
 
+        <label className="gdy-toggle">
+          <input
+            type="checkbox"
+            checked={noShuffle}
+            onChange={(e) => setNoShuffle(e.target.checked)}
+          />
+          {t.noShuffle} <span className="gdy-toggle-desc">{t.noShuffleDesc}</span>
+        </label>
+
         <button
           type="button"
           disabled={!props.connected}
@@ -112,6 +122,7 @@ export function OnlineLobby(props: {
               name,
               playerCount,
               fillWithBots: fillBots,
+              noShuffle,
             });
           }}
         >

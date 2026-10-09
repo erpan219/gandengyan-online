@@ -16,11 +16,32 @@
 html,
 body {
   height: 100%;
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
+/* Disable double-tap-to-zoom; pinch/pan stay available. */
+body, button, input, select {
+  touch-action: manipulation;
 }
 
 body {
   margin: 0;
   padding: 8px;
+  padding:
+    calc(8px + env(safe-area-inset-top))
+    calc(8px + env(safe-area-inset-right))
+    calc(8px + env(safe-area-inset-bottom))
+    calc(8px + env(safe-area-inset-left));
   color: var(--ivory);
   font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   background:
@@ -30,13 +51,16 @@ body {
   justify-content: center;
   align-items: stretch;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .gdy-app {
   position: relative;
   display: flex;
-  width: min(100%, 360px);
+  width: 100%;
+  margin: 0 auto;
   min-height: calc(100vh - 16px);
+  min-height: calc(100dvh - 16px);
   border: 3px solid var(--gold);
   outline: 7px solid var(--red);
   outline-offset: 5px;
@@ -539,4 +563,56 @@ body {
 }
 
 .gdy-toggle {
-  display
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--gold-warm);
+}
+
+.gdy-toggle input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--gold);
+}
+
+/* ---------- responsive: mobile-first, desktop enhancements ---------- */
+
+@media (max-width: 639px) {
+  .gdy-app {
+    max-width: none;
+    border-radius: 20px;
+  }
+  .gdy-screen {
+    padding: 24px 12px 12px;
+  }
+}
+
+@media (min-width: 640px) {
+  .gdy-app {
+    max-width: 900px;
+  }
+  /* Menu / lobby / room screens stay narrow and centered on desktop */
+  .gdy-screen {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* Game table uses the full 900px width */
+  .gdy-table {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .gdy-hand {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .gdy-controls {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
