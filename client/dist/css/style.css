@@ -301,9 +301,58 @@ button.off { opacity: .38; text-decoration: line-through; }
   .home-head h1 { font-size: 26px; }
   .head-btns { position: static; justify-content: center; margin-top: 12px; }
   .join-row input { letter-spacing: 4px; font-size: 18px; }
-  #opp-row { flex-direction: row; flex-wrap: wrap; }
-  .opp-zone { flex-basis: 46%; }
-  #table-mid { order: 3; flex-basis: 100%; }
+  /* Mobile: players on sides of table, not stacked above */
+  #opp-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  #opp-left, #opp-right {
+    flex: 0 0 68px;
+    display: flex;
+    min-width: 0;
+  }
+  #opp-left .opp, #opp-right .opp {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 4px;
+    min-width: 0;
+  }
+  #opp-left .opp-head, #opp-right .opp-head {
+    flex-direction: column;
+    align-items: center;
+  }
+  #opp-left .avatar, #opp-right .avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  #opp-left .pname, #opp-right .pname {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60px;
+  }
+  #opp-left .pmeta, #opp-right .pmeta {
+    font-size: 11px;
+    color: #ffd700;
+    font-weight: 700;
+  }
+  #opp-left .tag, #opp-right .tag {
+    display: none;
+  }
+  #table-mid {
+    flex: 1;
+    min-width: 0;
+    order: 0;
+  }
   .card { width: 46px; height: 66px; padding: 3px 4px; }
   .card .cr { font-size: 15px; }
   .card .cs { font-size: 13px; }

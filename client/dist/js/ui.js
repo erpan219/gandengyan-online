@@ -780,7 +780,8 @@ function startTurnTimer() {
   const seq = App.turnSeq;
   App.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
   App.turnTimer = setTimeout(() => onTurnTimeout(seq), TURN_TIMEOUT_MS);
-  startCountdownDisplay();
+  // Start countdown display after DOM updates
+  setTimeout(startCountdownDisplay, 50);
 }
 
 function onTurnTimeout(seq) {
@@ -849,7 +850,28 @@ function prevToCombo(prev, playerCount) {
 
 function renderGame() {
   const v = App.view;
-  if (!v) return;
+  if (!v) {
+    clearTurnTimer();
+    return;
+  }
+  // Game over: clear timeout state
+  if (v.state === 'settle' || v.state === 'gameover') {
+    clearTurnTimer();
+    App.autoPlay = false;
+  }
+  // Turn timeout: start timer on human's turn
+  const isMyTurn = v.state === 'playing' && v.actor === v.mySeat;
+  if (isMyTurn) {
+    if (App.autoPlay) {
+      clearTurnTimer();
+      const seq = App.turnSeq;
+      setTimeout(() => autoPlayMove(seq), 600);
+    } else if (!App.turnTimer) {
+      startTurnTimer();
+    }
+  } else {
+    clearTurnTimer();
+  }
   playSounds(v);
   // prune stale selection
   const handIds = new Set(v.myHand.map(c => c.id));
