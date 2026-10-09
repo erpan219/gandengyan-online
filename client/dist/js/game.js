@@ -211,8 +211,35 @@ class Game {
 
     let next = this.nextSeat(seat);
     while (this.isFinished(next)) next = this.nextSeat(next);
-    this.turn = next;
 
+    // Check if trick should reset: all active players except the last to play have passed
+    const lastPlayer = this.trick.seat;
+    // Count active players who haven't passed and aren't the last player
+    let needPass = 0;
+    for (let i = 0; i < this.n; i++) {
+      if (this.isFinished(i)) continue;
+      if (i === lastPlayer) continue;
+      if (!this.passed.has(i)) needPass++;
+    }
+
+    if (needPass === 0) {
+      // Everyone else passed -> trick resets, next active player after lastPlayer leads
+      // (or the lastPlayer themselves if still active)
+      let leader = lastPlayer;
+      if (leader == null || this.isFinished(leader)) {
+        leader = this.nextSeat(lastPlayer != null ? lastPlayer : seat);
+        while (this.isFinished(leader)) leader = this.nextSeat(leader);
+      }
+      this.trick = { combo: null, seat: null };
+      this.passed.clear();
+      for (let i = 0; i < this.n; i++) this.lastPlays[i] = null;
+      this.turn = leader;
+      this.emit('trick_reset', { leader: this.turn });
+      this.pump();
+      return true;
+    }
+
+    this.turn = next;
     this.emit('pass', { seat });
     this.pump();
     return true;
