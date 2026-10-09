@@ -14,6 +14,9 @@ function avatarForName(name) {
 // Animation keying: only animate when a NEW play lands, not on re-render.
 // Each trick gets a fingerprint; animation plays only when fingerprint changes.
 let _lastPlayFingerprint = null;
+let _lastPassFingerprint = {};
+// Reset pass tracking when trick clears
+function resetPassTracking() { _lastPassFingerprint = {}; }
 function playFingerprint(trickSeat, combo) {
   if (trickSeat == null || !combo || !combo.cards) return null;
   return trickSeat + ':' + combo.cards.map(c => c.id || (c.r + c.s)).sort().join(',');
@@ -552,7 +555,7 @@ function midHTML(v) {
   const fp = playFingerprint(trickSeat, v.trick ? v.trick.combo : null);
   const isNewPlay = fp && fp !== _lastPlayFingerprint;
   if (isNewPlay) _lastPlayFingerprint = fp;
-  if (!v.trick || !v.trick.combo) _lastPlayFingerprint = null;
+  if (!v.trick || !v.trick.combo) { _lastPlayFingerprint = null; resetPassTracking(); }
   let html = '<div id="center-table">';
 
   // Helper: render cards or pass at a table position
@@ -569,7 +572,15 @@ function midHTML(v) {
       inner = '<div class="table-cards' + (isBomb ? ' bomb-play' : '') + animCls + '">' +
               cards.map(c => cardHTML(c, '', v.laizi)).join('') + '</div>';
     } else if (lp && lp.pass) {
-      inner = '<div class="table-pass">\u4e0d\u51fa</div>';
+      // Pass fingerprint: only animate new passes
+      const passFp = 'pass:' + seat;
+      const isNewPass = passFp !== _lastPlayFingerprint;
+      // Don't overwrite card fingerprint with pass, use separate tracking
+      const passAnimCls = isNewPass && !_lastPassFingerprint[seat] ? '' : ' no-anim';
+      _lastPassFingerprint[seat] = true;
+      // Use localized text but same styling
+      const passText = t('pass_txt');
+      inner = '<div class="table-pass' + passAnimCls + '">' + passText + '</div>';
     }
     if (!inner) return '';
     return '<div class="table-spot ' + posClass + '">' + inner + '</div>';

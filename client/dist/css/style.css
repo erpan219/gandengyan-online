@@ -733,3 +733,20 @@ button.off { opacity: .38; text-decoration: line-through; }
 .table-pass {
   animation: passIn 0.25s ease-out;
 }
+
+.table-pass {
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 2px 2px 0 #7a1f1f, -1px -1px 0 #7a1f1f, 0 0 18px rgba(255,215,0,0.5);
+  letter-spacing: 6px;
+  animation: passIn 0.25s ease-out;
+  white-space: nowrap;
+  text-align: center;
+}
+/* English "Pass" gets tighter spacing to match visual weight of 不出 */
+.table-pass:lang(en) { letter-spacing: 2px; }
+.table-cards.no-anim .card,
+.table-pass.no-anim {
+  animation: none !important;
+}
