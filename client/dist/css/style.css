@@ -771,3 +771,31 @@ button.off { opacity: .38; text-decoration: line-through; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.3); }
   50% { box-shadow: 0 0 0 6px rgba(255, 193, 7, 0); }
 }
+
+/* Turn countdown timer */
+.turn-countdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 36px;
+  padding: 0 10px;
+  margin-right: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  vertical-align: middle;
+}
+.turn-countdown.urgent {
+  background: rgba(220, 53, 69, 0.3);
+  border-color: #dc3545;
+  color: #ff6b6b;
+  animation: countdownUrgent 0.5s infinite alternate;
+}
+@keyframes countdownUrgent {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}

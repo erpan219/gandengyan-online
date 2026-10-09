@@ -36,6 +36,7 @@ const App = {
   autoPlay: false,
   turnTimer: null,
   turnDeadline: 0,
+  turnSeq: 0,
   role: null,
   name: '',
   cfg: null,
@@ -470,6 +471,11 @@ function guestOnData(d) {
 /* ---------------- shared action entry ---------------- */
 
 function act(kind, data) {
+  // Edge case 1: any human action cancels the timeout timer
+  if (kind === 'play' || kind === 'pass') {
+    clearTurnTimer();
+    App.turnSeq++; // invalidate any pending timeout
+  }
   if (App.role === 'online') {
     data = data || {};
     if (kind === 'play') Online.playCards(Array.isArray(data.ids) ? data.ids : []);
@@ -633,8 +639,9 @@ function actionsHTML(v) {
     }
     const prev = prevFor(v);
     if (prev && !canBeat(v)) {
-      return `<button class="act-btn noplay" data-act="pass">${t('cant_beat')}</button>`;
+      return `${cdHtml}<button class="act-btn noplay" data-act="pass">${t('cant_beat')}</button>`;
     }
+    const cdHtml = `<span id="turn-countdown" class="turn-countdown"></span>`;
     const sel = v.myHand.filter(c => App.selected.has(c.id));
     let combo = null;
     if (sel.length) {
@@ -657,7 +664,7 @@ function actionsHTML(v) {
       }
     }
     const preview = combo ? `<span class="combo-preview">${comboName(combo)}</span>` : '';
-    return `${preview}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
+    return `${cdHtml}${preview}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
       `<button class="act-btn" data-act="pass" ${prev ? '' : 'disabled'}>${t('b_pass')}</button>` +
       `<button class="act-btn primary" data-act="play" ${combo ? '' : 'disabled'}>${t('b_play')}</button>`;
   }
@@ -733,6 +740,27 @@ function playSounds(v) {
 
 
 /* ---------------- turn timeout & auto-play ---------------- */
+// Visual countdown timer
+let _countdownInterval = null;
+function startCountdownDisplay() {
+  stopCountdownDisplay();
+  const el = document.getElementById('turn-countdown');
+  if (!el) return;
+  _countdownInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((App.turnDeadline - Date.now()) / 1000));
+    el.textContent = remaining + 's';
+    el.classList.toggle('urgent', remaining <= 10);
+    if (remaining <= 0) stopCountdownDisplay();
+  }, 250);
+}
+function stopCountdownDisplay() {
+  if (_countdownInterval) {
+    clearInterval(_countdownInterval);
+    _countdownInterval = null;
+  }
+}
+
+
 const TURN_TIMEOUT_MS = 30000;
 
 function clearTurnTimer() {
@@ -740,30 +768,45 @@ function clearTurnTimer() {
     clearTimeout(App.turnTimer);
     App.turnTimer = null;
   }
+  stopCountdownDisplay();
+  const el = document.getElementById('turn-countdown');
+  if (el) el.textContent = '';
 }
 
 function startTurnTimer() {
   clearTurnTimer();
-  if (App.autoPlay) return; // already in auto-play, no timer needed
+  if (App.autoPlay) return;
+  App.turnSeq++;
+  const seq = App.turnSeq;
   App.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
-  App.turnTimer = setTimeout(onTurnTimeout, TURN_TIMEOUT_MS);
+  App.turnTimer = setTimeout(() => onTurnTimeout(seq), TURN_TIMEOUT_MS);
+  startCountdownDisplay();
 }
 
-function onTurnTimeout() {
+function onTurnTimeout(seq) {
+  // Edge case 5: ignore stale timers from previous turns
+  if (seq !== App.turnSeq) return;
   const v = App.view;
   if (!v || v.state !== 'playing' || v.actor !== v.mySeat) return;
-  // Enter auto-play mode
+  // Edge case 1: double-check user hasn't acted (timer should've been cleared)
+  if (App.autoPlay) return;
   App.autoPlay = true;
   toast(t('autoplay_on'));
   renderGame();
-  // Execute auto-play move after brief delay
-  setTimeout(autoPlayMove, 800);
+  setTimeout(() => autoPlayMove(seq), 800);
 }
 
-function autoPlayMove() {
+function autoPlayMove(seq) {
   const v = App.view;
   if (!v || !App.autoPlay) return;
-  if (v.state !== 'playing' || v.actor !== v.mySeat) return;
+  // Edge case 5: stale auto-play call
+  if (seq !== undefined && seq !== App.turnSeq) return;
+  // Edge case 2: game ended during auto-play
+  if (v.state !== 'playing' || v.actor !== v.mySeat) {
+    App.autoPlay = false;
+    clearTurnTimer();
+    return;
+  }
 
   // Use AI logic to determine best move
   const handIds = v.myHand.map(c => c.id);
