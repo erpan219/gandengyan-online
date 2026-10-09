@@ -301,9 +301,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   .home-head h1 { font-size: 26px; }
   .head-btns { position: static; justify-content: center; margin-top: 12px; }
   .join-row input { letter-spacing: 4px; font-size: 18px; }
-  #opp-row { flex-direction: row; flex-wrap: wrap; }
-  .opp-zone { flex-basis: 46%; }
-  #table-mid { order: 3; flex-basis: 100%; }
+  /* (removed: superseded by side-panel layout) */
   .card { width: 46px; height: 66px; padding: 3px 4px; }
   .card .cr { font-size: 15px; }
   .card .cs { font-size: 13px; }
