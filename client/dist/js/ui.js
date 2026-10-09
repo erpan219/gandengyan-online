@@ -536,37 +536,40 @@ function centerHTML(v) {
 }
 
 function midHTML(v) {
+  // Positional play display: each player's cards appear at the table edge
+  // matching their seat. Only the dominant (winning) play is visible.
   const sides = seatSides(v);
+  const trickSeat = v.trick ? v.trick.seat : null;
   let html = '<div id="center-table">';
 
-  const trickSeat = v.trick ? v.trick.seat : null;
-
-  // Dominant play: LARGE and CENTERED
-  if (trickSeat != null && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
-    const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
-    const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
-    const playerName = v.players[trickSeat] ? esc(v.players[trickSeat].name) : '';
-    html += '<div class="dominant-play">';
-    html += '<div class="dp-name">' + playerName + '</div>';
-    html += '<div class="play-cards' + (isBomb ? ' bomb-play' : '') + '">' + cards.map(c => cardHTML(c, '', v.laizi)).join('') + '</div>';
-    html += '</div>';
-  }
-
-  // Pass indicators at each player's edge
-  const passFor = (seat, cls) => {
+  // Helper: render cards or pass at a table position
+  const spot = (seat, posClass) => {
     if (seat == null || !v.players[seat]) return '';
-    const lp = v.players[seat].lastPlay;
-    if (lp && lp.pass) return '<div class="pass-spot ' + cls + '">\u4e0d\u51fa</div>';
-    return '';
+    const p = v.players[seat];
+    const lp = p.lastPlay;
+    let inner = '';
+    // Show cards only if this seat made the dominant play
+    if (seat === trickSeat && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
+      const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
+      const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
+      inner = '<div class="table-cards' + (isBomb ? ' bomb-play' : '') + '">' +
+              cards.map(c => cardHTML(c, '', v.laizi)).join('') + '</div>';
+    } else if (lp && lp.pass) {
+      inner = '<div class="table-pass">\u4e0d\u51fa</div>';
+    }
+    if (!inner) return '';
+    return '<div class="table-spot ' + posClass + '">' + inner + '</div>';
   };
-  html += passFor(v.mySeat, 'pp-bottom');
-  html += passFor(sides.left, 'pp-left');
-  html += passFor(sides.right, 'pp-right');
-  html += passFor(sides.top, 'pp-top');
+
+  html += spot(v.mySeat, 'ts-bottom');
+  html += spot(sides.left, 'ts-left');
+  html += spot(sides.right, 'ts-right');
+  html += spot(sides.top, 'ts-top');
 
   html += '</div>';
   return html;
 }
+
 
 
 function myInfoHTML(v) {

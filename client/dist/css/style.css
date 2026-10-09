@@ -317,34 +317,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 }
 
 /* (removed old center-table, see Centered dominant play below) */
-.play-spot {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  min-height: 100px;
-}
-.play-spot.pos-bottom {
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.play-spot.pos-left {
-  left: 10px;
-  top: 40%;
-  transform: translateY(-50%);
-}
-.play-spot.pos-right {
-  right: 10px;
-  top: 40%;
-  transform: translateY(-50%);
-}
-.play-spot.pos-top {
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-}
+/* removed: superseded by table-spot */
 .play-cards {
   display: flex;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
@@ -582,18 +555,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   min-height: 280px;
   flex: 1;
 }
-.dominant-play {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  z-index: 2;
-}
-.dp-name {
-  font-size: 14px;
-  color: rgba(255,255,255,0.8);
-  font-weight: 600;
-}
+/* removed: superseded by table-spot */
 .dominant-play .play-cards .card {
   width: clamp(56px, 7vw, 80px);
   height: calc(clamp(56px, 7vw, 80px) * 1.4);
@@ -601,19 +563,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 }
 
 /* Pass indicators at table edges */
-.pass-spot {
-  position: absolute;
-  font-size: 28px;
-  font-weight: 900;
-  color: #ffd700;
-  text-shadow: 2px 2px 0 #8b0000, 0 0 16px rgba(255,215,0,0.4);
-  letter-spacing: 4px;
-  z-index: 1;
-}
-.pp-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); }
-.pp-top { top: 12px; left: 50%; transform: translateX(-50%); }
-.pp-left { left: 16px; top: 50%; transform: translateY(-50%); }
-.pp-right { right: 16px; top: 50%; transform: translateY(-50%); }
+/* removed: superseded by table-spot */
 
 /* Desktop: side panels compact, table fills space */
 @media (min-width: 721px) {
@@ -638,4 +588,122 @@ button.off { opacity: .38; text-decoration: line-through; }
     width: clamp(44px, 11vw, 60px);
     height: calc(clamp(44px, 11vw, 60px) * 1.4);
   }
+}
+
+/* === Positional table play: cards at each player's table edge === */
+#center-table {
+  position: relative;
+  min-height: 260px;
+  flex: 1;
+}
+.table-spot {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.ts-bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.ts-top { top: 8px; left: 50%; transform: translateX(-50%); }
+.ts-left { left: 12px; top: 50%; transform: translateY(-50%); }
+.ts-right { right: 12px; top: 50%; transform: translateY(-50%); }
+
+.table-cards {
+  display: flex;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.45));
+  animation: cardDeal 0.35s ease-out;
+}
+.table-cards .card {
+  width: clamp(52px, 6.5vw, 72px);
+  height: calc(clamp(52px, 6.5vw, 72px) * 1.42);
+  margin-left: -26px;
+}
+.table-cards .card:first-child { margin-left: 0; }
+.table-cards.bomb-play .card { animation: bombBlast 0.5s ease-out; }
+
+.table-pass {
+  font-size: 30px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 2px 2px 0 #7a1f1f, -1px -1px 0 #7a1f1f, 0 0 18px rgba(255,215,0,0.5);
+  letter-spacing: 6px;
+  animation: passIn 0.3s ease-out;
+}
+@keyframes passIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* === Pretty side player panels === */
+.opp {
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+  border: 1px solid rgba(255,215,0,0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  padding: 12px 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.opp.turn {
+  border-color: #ffd700;
+  box-shadow: 0 0 0 2px rgba(255,215,0,0.4), 0 6px 24px rgba(0,0,0,0.3);
+  animation: turnPulse 1.4s infinite;
+}
+.avatar {
+  font-size: 34px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 30% 30%, #fff8e1, #ffecb3 60%, #ffd54f);
+  border-radius: 50%;
+  border: 2px solid #ffd700;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.5);
+}
+.pname {
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.pmeta {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+}
+
+/* Desktop: panels on sides */
+@media (min-width: 721px) {
+  #opp-row { align-items: stretch; gap: 14px; }
+  .seat-side { flex: 0 0 190px; display: flex; }
+  .seat-side .opp {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+  .seat-side .opp-head { flex-direction: column; }
+  #table-mid { flex: 1; min-width: 0; }
+  #seat-top { margin-bottom: 10px; }
+  #seat-top .opp {
+    flex-direction: row;
+    padding: 8px 24px;
+  }
+}
+
+/* Mobile: compact */
+@media (max-width: 720px) {
+  #center-table { min-height: 190px; }
+  .table-cards .card {
+    width: clamp(40px, 10vw, 54px);
+    height: calc(clamp(40px, 10vw, 54px) * 1.42);
+    margin-left: -20px;
+  }
+  .table-pass { font-size: 24px; }
+  .ts-left { left: 6px; }
+  .ts-right { right: 6px; }
+  .opp { padding: 8px 12px; border-radius: 14px; }
+  .avatar { width: 40px; height: 40px; font-size: 26px; }
+  .pname { font-size: 13px; }
 }
