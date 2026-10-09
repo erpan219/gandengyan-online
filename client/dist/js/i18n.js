@@ -3,7 +3,7 @@
 
 const I18N = {
   zh: {
-    title: '斗地主 Online',
+    title: '干瞪眼',
     subtitle: '和朋友在线联机 · 无需注册',
     h_name: '你的昵称',
     h_mode: '玩法',
@@ -105,21 +105,27 @@ const I18N = {
     chat: ['快点啦～', '大的来了!', '炸得漂亮!', '这牌没法打', '再来一局,决战到天亮', '哈哈哈哈', '佩服佩服', '你是 AI 吗?'],
     help_title: '玩法说明',
     help_body: `
-<h3>基本规则</h3>
-<p>经典三人:每人 17 张,叫分(1/2/3)最高者当地主并拿 3 张底牌。地主先出,先出完手牌的一方获胜。牌型:单张、对子、三条、三带一/二、顺子(≥5 张)、连对(≥3 对)、飞机(带翅膀)、四带二、炸弹、王炸。</p>
-<h3>二人对决</h3>
-<p>每人 17 张,地主拿 3 张底牌,剩余 17 张不入局。规则同三人。</p>
-<h3>癞子场</h3>
-<p>每局随机指定一种牌为癞子(万能牌),可替代 3~2 的任意牌。单出的癞子只算本牌;含癞子的炸弹是"软炸",小于同点数的普通炸弹;4 张癞子一起打出为"癞子炸",大过一切炸弹(仅次于王炸)。含癞子的出牌自动按最强的解释来算。</p>
-<h3>不洗牌</h3>
-<p>发牌前基本不洗牌,同点数扎堆,炸弹与飞机极多,倍数飞涨。</p>
-<h3>计分</h3>
-<p>得分 = 底分 × 叫分 × 2^炸弹数 × 春天(×2) × 加倍。春天:地主打完时农民一张未出;反春:地主只出过第一手。</p>
-<h3>联机</h3>
-<p>创建房间后把 4 位房间码发给朋友(经典模式最多 2 位、二人对决 1 位),对方在首页输入即可加入,点对点直连。人数不足时空位由 AI 补齐;中途掉线也会由 AI 接管。</p>\n<p>连不上时:不要在微信/QQ 内置浏览器里打开(用 Safari/Chrome);公司或校园网络可能拦截联机,换手机流量试试;还不行就双方各刷新一次重新建房。</p>`,
+<h3>🃏 基本规则</h3>
+<p>干瞪眼:3–4 人,共 54 张牌。三人局每人 18 张;四人局 14/14/13/13。逆时针出牌,先出完者胜,按名次计分。</p>
+<h3>🎯 首出规则</h3>
+<p>第一局:手中有黑桃 4 者先出(不必打出黑桃 4)。之后每局:上一局第一名先出。</p>
+<h3>📊 牌力大小</h3>
+<p>4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; 2 &lt; 3 &lt; 小王 &lt; 大王</p>
+<h3>💣 炸弹</h3>
+<p>三张同点为三炸,四张同点为四炸,小王+大王为火箭(最大)。炸弹大小:火箭 &gt; 四炸 &gt; 三炸 &gt; 普通牌。炸弹可压任何非炸弹牌型。</p>
+<h3>🂡 牌型</h3>
+<p>单张、对子、顺子(4–A,三人局≥4 张/四人局≥3 张)、连对(4–A,≥2 对)。无三带、飞机、癞子。</p>
+<h3>⏭️ 出牌规则</h3>
+<p>跟牌时可"过",自由领出时必须出牌。普通牌需同牌型同张数且更大;炸弹可随时打出。</p>
+<h3>🏆 计分</h3>
+<p>三人局:第 1/2/3 名得 2/1/0 分;四人局:第 1/2/3/4 名得 3/2/1/0 分。多局累计。</p>
+<h3>🔀 不洗牌模式</h3>
+<p>发牌前只做几次随机交换,同点数扎堆,炸弹满天飞!</p>
+<h3>🌐 联机</h3>
+<p>创建房间后把 4 位房间码发给朋友,对方输入即可加入。人数不足时空位由 AI 补齐;中途掉线由 AI 接管,重连可夺回。</p>`,
   },
   en: {
-    title: 'Dou Dizhu Online',
+    title: 'Gandengyan',
     subtitle: 'Play with friends online · no signup',
     h_name: 'Your nickname',
     h_mode: 'Game mode',
@@ -221,18 +227,24 @@ const I18N = {
     chat: ['Hurry up~', 'Big one coming!', 'Nice bomb!', 'My hand is hopeless', 'One more, all night long!', 'Hahaha', 'Respect!', 'Are you a bot?'],
     help_title: 'How to play',
     help_body: `
-<h3>Basics</h3>
-<p>Classic 3P: 17 cards each; the highest bidder (1/2/3) becomes the landlord and takes the 3-card kitty. The landlord leads; first to empty their hand wins. Combos: single, pair, trio, trio+1/+2, straight (5+), pair straight (3+ pairs), plane (with wings), four+2, bomb, rocket.</p>
-<h3>Heads-up duel</h3>
-<p>17 cards each, the landlord takes the kitty, the remaining 17 cards stay out of play. Same combos as 3P.</p>
-<h3>Wildcard (Laizi)</h3>
-<p>Each round one random rank is wild and can stand in for any rank 3–2. A wild played alone counts as its own rank. A bomb containing wilds is a "soft bomb" and loses to the natural bomb of the same rank; four wilds together form the top bomb (only the rocket beats it). Wild plays are read as their strongest interpretation.</p>
-<h3>No-shuffle</h3>
-<p>The deck is barely shuffled, so equal ranks clump — bombs and planes everywhere, multipliers explode.</p>
-<h3>Scoring</h3>
-<p>Score = base × bid × 2^bombs × spring (×2) × doubles. Spring: farmers never played; anti-spring: the landlord only played the first hand.</p>
-<h3>Online play</h3>
-<p>Create a room and send the 4-character code to your friends (up to 2 in Classic, 1 in Duel); they enter it on the home screen and connect peer-to-peer. AIs fill any empty seats and take over if someone disconnects.</p>\n<p>If you can't connect: open the site in a real browser (not an in-app webview), try a different network such as 4G/5G — some corporate networks block peer-to-peer — and re-create the room after refreshing both sides.</p>`,
+<h3>🃏 Basics</h3>
+<p>Gandengyan: 3–4 players, 54 cards. 3P: 18 each; 4P: 14/14/13/13. Counterclockwise, first to empty hand wins, scored by placement.</p>
+<h3>🎯 Leading</h3>
+<p>First hand: holder of ♠4 leads (need not play it). Later hands: previous winner leads.</p>
+<h3>📊 Rank order</h3>
+<p>4 &lt; 5 &lt; 6 &lt; 7 &lt; 8 &lt; 9 &lt; 10 &lt; J &lt; Q &lt; K &lt; A &lt; 2 &lt; 3 &lt; SJ &lt; BJ</p>
+<h3>💣 Bombs</h3>
+<p>Three of a kind = triple bomb, four = four bomb, SJ+BJ = rocket (highest). Rocket &gt; four bomb &gt; triple bomb &gt; ordinary. Bombs beat anything except higher bombs.</p>
+<h3>🂡 Combos</h3>
+<p>Single, pair, straight (4–A, 3P: 4+ cards / 4P: 3+ cards), pair run (4–A, 2+ pairs). No trios with kickers, no wildcards.</p>
+<h3>⏭️ Play rules</h3>
+<p>Pass allowed when responding; must play on free lead. Ordinary plays need same type, same count, strictly higher. Bombs can be played anytime.</p>
+<h3>🏆 Scoring</h3>
+<p>3P: 1st/2nd/3rd = 2/1/0 pts; 4P: 1st/2nd/3rd/4th = 3/2/1/0 pts. Cumulative across hands.</p>
+<h3>🔀 No-shuffle</h3>
+<p>Deck gets only a few swaps — ranks clump together, bombs everywhere!</p>
+<h3>🌐 Online</h3>
+<p>Create a room, share the 4-letter code. Empty seats filled by AI; disconnects are taken over by AI, reconnect to reclaim.</p>`,
   },
 };
 
