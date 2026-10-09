@@ -521,10 +521,8 @@ function centerHTML(v) {
 }
 
 function midHTML(v) {
-  let bottom;
-  if (v.bottom) bottom = v.bottom.map(c => cardHTML(c, 'mini', v.laizi)).join('');
-  else bottom = [0, 1, 2].map(() => cardHTML(null, 'mini')).join('');
-  let html = `<div class="bottom-cards"><span class="bc-label">${t('g_bottom')}</span>${bottom}</div>`;
+  // Gandengyan has no kitty/bottom cards — all 54 cards are dealt.
+  let html = '';
   const sides = seatSides(v);
   if (sides.top !== null) html += oppPanelHTML(v, sides.top);
   return html;
