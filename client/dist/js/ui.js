@@ -550,6 +550,8 @@ function midHTML(v) {
   if (sides.top != null) html += playFor(sides.top, 'pos-top');
 
   html += '</div>';
+  // 4-player: top opponent's tag panel goes above the center table
+  if (sides.top != null) html = oppPanelHTML(v, sides.top) + html;
   return html;
 }
 
