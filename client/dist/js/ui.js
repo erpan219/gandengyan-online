@@ -505,7 +505,7 @@ function oppPanelHTML(v, seat) {
         <div class="pmeta">${t('score_pts', p.score)} · ${t('cards_left', p.cardCount)}</div>
       </div>
     </div>
-    <div class="opp-play">${playAreaHTML(v, seat)}</div>${settleHand}
+    ${settleHand}
     <div class="bubble-slot"></div>
   </div>`;
 }
@@ -521,10 +521,35 @@ function centerHTML(v) {
 }
 
 function midHTML(v) {
-  // Gandengyan has no kitty/bottom cards — all 54 cards are dealt.
-  let html = '';
+  // Central play area: each player's last play positioned by seat, like pro clients.
+  // Bottom = me, left/right = opponents. Large cards, clearly visible.
   const sides = seatSides(v);
-  if (sides.top !== null) html += oppPanelHTML(v, sides.top);
+  let html = '<div id="center-table">';
+
+  // Helper to render a play (cards or pass) for a seat
+  const playFor = (seat, posClass) => {
+    if (seat == null || !v.players[seat]) return '';
+    const p = v.players[seat];
+    const lp = p.lastPlay;
+    let inner = '';
+    if (lp) {
+      if (lp.pass) {
+        inner = `<div class="play-pass">不出</div>`;
+      } else if (lp.cards && lp.cards.length) {
+        const cards = lp.cards.slice().sort((a, b) => b.r - a.r);
+        inner = `<div class="play-cards">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
+      }
+    }
+    return `<div class="play-spot ${posClass}">${inner}</div>`;
+  };
+
+  // Position plays: me at bottom, opponents left/right
+  html += playFor(v.mySeat, 'pos-bottom');
+  if (sides.left != null) html += playFor(sides.left, 'pos-left');
+  if (sides.right != null) html += playFor(sides.right, 'pos-right');
+  if (sides.top != null) html += playFor(sides.top, 'pos-top');
+
+  html += '</div>';
   return html;
 }
 
@@ -665,16 +690,15 @@ function renderGame() {
   $('#opp-right').innerHTML = sides.right !== null ? oppPanelHTML(v, sides.right) : '';
   $('#table-mid').innerHTML = midHTML(v);
 
-  // my last play
-  const mp = v.players[v.mySeat].lastPlay;
-  let mpHtml = '';
-  if (mp) {
-    mpHtml = mp.pass ? `<span class="say pass">${t('pass_txt')}</span>`
-      : `<div class="mini-cards">${mp.cards.slice().sort((a, b) => b.r - a.r).map(c => cardHTML(c, 'mini', v.laizi)).join('')}</div>`;
-  } else if (v.state === 'playing' && v.actor === v.mySeat && !prevFor(v)) {
-    mpHtml = `<span class="say lead">${t('lead_any')}</span>`;
+  // my last play is shown in center pos-bottom, hide the old line
+  const myLastEl = $('#my-lastplay');
+  if (myLastEl) {
+    if (v.state === 'playing' && v.actor === v.mySeat && !prevFor(v) && !v.players[v.mySeat].lastPlay) {
+      myLastEl.innerHTML = `<span class="say lead">${t('lead_any')}</span>`;
+    } else {
+      myLastEl.innerHTML = '';
+    }
   }
-  $('#my-lastplay').innerHTML = mpHtml;
 
   $('#actions').innerHTML = actionsHTML(v);
   $('#my-hand').innerHTML = v.myHand.map(c =>
