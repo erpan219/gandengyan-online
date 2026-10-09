@@ -775,10 +775,12 @@ function playSounds(v) {
     if (cur.plays[i] === prev.plays[i] || cur.plays[i] === '') continue;
     if (cur.plays[i] === 'P') { Snd.pass(); continue; }
     const c = v.players[i].lastPlay.combo;
-    if (c && c.type === 'rocket') { Snd.rocket(); showComboBurst('🚀 ' + t('rocket')); Snd.combo(); }
-    else if (c && c.type === 'bomb') { Snd.bomb(); showComboBurst('💣 ' + t('bomb')); Snd.combo(); }
-    else if (c && c.type === 'straight') { Snd.play(); showComboBurst(t('straight')); }
-    else if (c && c.type === 'pair_run') { Snd.play(); showComboBurst(t('pair_run')); }
+    if (c && c.type === 'rocket') { Snd.rocket(); showComboBurst('🚀 ' + t('c_rocket')); Snd.combo(); }
+    else if (c && (c.type === 'bomb' || c.type === 'triplebomb' || c.type === 'fourbomb')) {
+      Snd.bomb(); showComboBurst('💣 ' + t('c_bomb')); Snd.combo();
+    }
+    else if (c && c.type === 'straight') { Snd.play(); showComboBurst(t('c_straight')); }
+    else if (c && c.type === 'pair_run') { Snd.play(); showComboBurst(t('c_pair_straight')); }
     else Snd.play();
   }
   if (cur.bids !== prev.bids) Snd.bid();
@@ -908,6 +910,8 @@ function renderGame() {
     clearTurnTimer();
     return;
   }
+  // Wrap sounds in try-catch: effect errors must never break UI rendering
+  try { playSounds(v); } catch (e) { console.error('playSounds error:', e); }
   // Game over: clear timeout state
   if (v.state === 'settle' || v.state === 'gameover') {
     clearTurnTimer();
@@ -926,7 +930,6 @@ function renderGame() {
   } else {
     clearTurnTimer();
   }
-  playSounds(v);
   // prune stale selection
   const handIds = new Set(v.myHand.map(c => c.id));
   for (const id of [...App.selected]) if (!handIds.has(id)) App.selected.delete(id);
