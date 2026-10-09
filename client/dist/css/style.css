@@ -750,3 +750,179 @@ button.off { opacity: .38; text-decoration: line-through; }
 .table-pass.no-anim {
   animation: none !important;
 }
+/* ============================================================
+   AAA VISUAL UPGRADE - Senior Game Designer & UI/UX Artist
+   Art direction: festive Chinese lacquer + gold, Hearthstone-grade
+   ============================================================ */
+
+:root {
+  --aaa-crimson: #D7263D;
+  --aaa-crimson-deep: #8B1538;
+  --aaa-gold: #E9B44C;
+  --aaa-gold-bright: #FFC93C;
+  --aaa-dark: #260A0F;
+  --aaa-cream: #F7E7C3;
+  --aaa-text: #FFF8E7;
+}
+
+/* --- Premium card faces: lacquered with gold filigree --- */
+.card {
+  background: linear-gradient(145deg, #FFFEF9 0%, #F7E7C3 40%, #FFF8E7 70%, #F0DDAE 100%);
+  border: 2px solid var(--aaa-crimson);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 12px rgba(38, 10, 15, 0.35),
+    0 1px 3px rgba(38, 10, 15, 0.2),
+    inset 0 0 0 1px rgba(233, 180, 76, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+/* Gold filigree inner border */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(233, 180, 76, 0.35);
+  border-radius: 7px;
+  pointer-events: none;
+}
+/* Red suits: rich crimson with depth */
+.card.red .cr, .card.red .cs {
+  color: #C41E3A;
+  text-shadow: 0 1px 1px rgba(196, 30, 58, 0.2);
+  font-weight: 800;
+}
+/* Black suits: deep ink with warmth */
+.card.black .cr, .card.black .cs {
+  color: #2A1A1E;
+  text-shadow: 0 1px 1px rgba(42, 26, 30, 0.15);
+  font-weight: 800;
+}
+/* Card back: lacquered red with gold pattern */
+.card.back {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(233,180,76,0.08) 0px, rgba(233,180,76,0.08) 2px, transparent 2px, transparent 8px),
+    linear-gradient(145deg, #D7263D 0%, #8B1538 100%);
+  border-color: var(--aaa-gold);
+}
+/* Selected: golden glow lift */
+#my-hand .card.selected {
+  transform: translateY(-20px);
+  border-color: var(--aaa-gold-bright);
+  box-shadow:
+    0 0 0 2px var(--aaa-gold-bright),
+    0 0 24px rgba(255, 201, 60, 0.6),
+    0 12px 28px rgba(38, 10, 15, 0.4),
+    inset 0 0 0 1px rgba(233, 180, 76, 0.6);
+}
+/* Hover: sheen sweep */
+#my-hand .card:hover {
+  transform: translateY(-14px);
+}
+#my-hand .card:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
+  animation: sheen 0.5s ease-out;
+  pointer-events: none;
+}
+@keyframes sheen {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* --- AAA buttons: lacquered plaques with gold rims --- */
+.btn, button.action-btn {
+  background: linear-gradient(180deg, #E63950 0%, #D7263D 40%, #8B1538 100%);
+  border: 2px solid var(--aaa-gold);
+  border-radius: 14px;
+  color: var(--aaa-text);
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(38, 10, 15, 0.6);
+  box-shadow:
+    0 4px 12px rgba(38, 10, 15, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  padding: 12px 28px;
+  letter-spacing: 1px;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.btn:hover, button.action-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.15);
+  box-shadow:
+    0 6px 20px rgba(215, 38, 61, 0.5),
+    0 0 16px rgba(255, 201, 60, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn:active, button.action-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+/* Gold shimmer on primary action */
+.btn.primary, #btn-play {
+  background: linear-gradient(180deg, #FFD700 0%, #E9B44C 40%, #B8860B 100%);
+  color: #4A0E0E;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  border-color: #FFF8E7;
+}
+
+/* --- Table: crimson silk with spotlight and vignette --- */
+#table-mid {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 201, 60, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, rgba(215, 38, 61, 0.08) 0%, transparent 70%),
+    linear-gradient(160deg, #3D0F1A 0%, #260A0F 50%, #1A060A 100%);
+  border: 3px solid transparent;
+  border-image: linear-gradient(135deg, #E9B44C, #8B6914, #E9B44C) 1;
+  border-radius: 24px;
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(215, 38, 61, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+/* Subtle cloud pattern overlay */
+#table-mid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 30%, rgba(233,180,76,0.04) 0%, transparent 40%),
+                    radial-gradient(circle at 80% 70%, rgba(233,180,76,0.04) 0%, transparent 40%);
+  border-radius: 24px;
+  pointer-events: none;
+}
+
+/* --- Player panels: jade-inlaid lacquer --- */
+.opp {
+  background: linear-gradient(135deg, rgba(38,10,15,0.85), rgba(61,15,26,0.75));
+  border: 1px solid rgba(233, 180, 76, 0.35);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 8px 28px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,248,231,0.12),
+    inset 0 0 20px rgba(215,38,61,0.08);
+}
+.opp.turn {
+  border-color: var(--aaa-gold-bright);
+  box-shadow:
+    0 0 0 2px rgba(255,201,60,0.5),
+    0 0 32px rgba(255,201,60,0.35),
+    0 8px 28px rgba(0,0,0,0.45);
+}
+
+/* --- Typography: premium serif for headings --- */
+h1, h2, .game-title {
+  font-family: "STKaiti", "KaiTi", "SimSun", serif;
+  color: var(--aaa-gold-bright);
+  text-shadow:
+    0 2px 0 #7A1F1F,
+    0 4px 12px rgba(0,0,0,0.5),
+    0 0 30px rgba(255,201,60,0.3);
+  letter-spacing: 4px;
+}

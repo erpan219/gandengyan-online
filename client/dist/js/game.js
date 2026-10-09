@@ -108,7 +108,9 @@ class Game {
       const hand = this.hands[seat];
       if (!hand || hand.length === 0) return;
       const prev = this.trick.combo && this.trick.seat !== seat ? this.trick.combo : null;
-      const play = gdyBotPlay(hand, prev, this.n);
+      // Opponent card counts for strategic AI (excludes self)
+      const oppCounts = this.hands.map((h, i) => i === seat ? -1 : h.length).filter(c => c >= 0);
+      const play = gdyBotPlay(hand, prev, this.n, oppCounts);
       if (play && play.length) {
         if (!this.actPlay(seat, play)) {
           // actPlay failed, try passing if possible

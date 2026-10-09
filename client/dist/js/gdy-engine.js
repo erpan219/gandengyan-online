@@ -218,19 +218,27 @@ function gdyFindPlays(handIds, target, playerCount) {
 }
 
 /* Bot: pick a play. Returns cardIds or null for pass. */
-function gdyBotPlay(handIds, target, playerCount) {
+function gdyBotPlay(handIds, target, playerCount, oppCounts) {
+  oppCounts = oppCounts || [];
   const plays = gdyFindPlays(handIds, target, playerCount);
   if (!plays.length) return null;
 
-  // Build rank counts to avoid breaking bombs
+  // === Heuristic 1: Hand evaluation ===
+  // Score: bombs (+50 each tier), high cards (3/2/BJ/SJ), penalize singletons
   const rankCount = {};
   for (const id of handIds) {
     const r = gdyCardRank(id);
     rankCount[r] = (rankCount[r] || 0) + 1;
   }
   const isBombRank = (r) => (rankCount[r] || 0) >= 3 && r !== 'SJ' && r !== 'BJ';
+  const highRanks = ['3', '2', 'SJ', 'BJ'];
 
-  // Filter out plays that break bombs (using bomb-rank cards for non-bomb plays)
+  // === Heuristic: Opponent threat detection ===
+  // If any opponent has <= 2 cards, they might win next turn - play aggressively
+  const oppThreat = oppCounts.some(c => c <= 2);
+  const oppCloseToWin = oppCounts.some(c => c <= 4);
+
+  // Filter: don't break bombs for ordinary plays (unless desperate)
   const preservesBombs = (play) => {
     if (gdyBombTier(play.kind) > 0) return true;
     for (const id of play.cardIds) {
@@ -238,42 +246,77 @@ function gdyBotPlay(handIds, target, playerCount) {
     }
     return true;
   };
-
   const smart = plays.filter(preservesBombs);
   const pool = smart.length ? smart : plays;
 
+  // === Heuristic 2: Lead strategy ===
   if (!target) {
-    // FREE LEAD: dump cards fast, but NEVER lead a bomb (wasteful).
     const noBombLead = pool.filter(p => gdyBombTier(p.kind) === 0);
     const leadPool = noBombLead.length ? noBombLead : pool;
-    const byLen = leadPool.slice().sort((a, b) => {
-      if (b.cardCount !== a.cardCount) return b.cardCount - a.cardCount;
-      return a.strength - b.strength;
+
+    // Score each lead: prefer dumping cards, preserve high finishers
+    const scored = leadPool.map(p => {
+      let score = p.cardCount * 10;  // More cards = better
+      // Bonus for leading from pairs/straights (efficient)
+      if (p.kind === 'PAIR' || p.kind === 'PAIR_RUN') score += 5;
+      if (p.kind === 'STRAIGHT') score += 8;
+      // Penalty for leading high cards early (save finishers)
+      if (p.strength > 10) score -= (p.strength - 10) * 2;
+      // Human-like unpredictability: small random factor
+      score += Math.random() * 3;
+      return { play: p, score };
     });
-    const multi = byLen.filter(p => p.cardCount > 2);
-    if (multi.length) return multi[0].cardIds;
-    const pairs = byLen.filter(p => p.kind === 'PAIR');
-    if (pairs.length) return pairs[0].cardIds;
-    return byLen[0].cardIds;
+    scored.sort((a, b) => b.score - a.score);
+
+    // Endgame: if we can go out, do it
+    if (handIds.length <= 6) {
+      const finisher = scored.find(s => s.play.cardCount >= handIds.length - 2);
+      if (finisher) return finisher.play.cardIds;
+    }
+    return scored[0].play.cardIds;
   }
 
-  // RESPONDING: lowest beating card, save bombs
+  // === Heuristic 3: Response strategy - beat only if worth it ===
   const nonBombs = pool.filter(p => gdyBombTier(p.kind) === 0);
-  const canWin = nonBombs.length > 0;
 
-  if (canWin) {
-    // Play lowest non-bomb that beats
-    nonBombs.sort((a, b) => a.strength - b.strength || a.cardCount - b.cardCount);
-    return nonBombs[0].cardIds;
+  if (nonBombs.length) {
+    // Score each response: cheap wins good, expensive wins bad
+    const scored = nonBombs.map(p => {
+      let score = 100 - p.strength;  // Lower strength = cheaper = better
+      // Bonus: removes a weak/single card from hand
+      if (p.cardCount === 1 && p.strength < 8) score += 10;
+      // Penalty: using a high card (J+) to beat a low play is wasteful
+      if (target.strength < 6 && p.strength >= 8) score -= 45;
+      // If opponent threatens to win, be more willing to beat
+      if (oppThreat) score += 15;
+      // Human-like: slight randomization
+      score += Math.random() * 5;
+      return { play: p, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    // Pass if best option is still bad (unless opponent threatens)
+    if (!oppThreat && scored[0].score < 70) return null;
+    return scored[0].play.cardIds;
   }
 
-  // Must bomb or pass. Bomb if: hand small (<=4), or target is a bomb (bomb war)
+  // === Heuristic 4: Bomb management ===
   const bombs = pool.filter(p => gdyBombTier(p.kind) > 0);
   if (bombs.length) {
-    const targetIsBomb = gdyBombTier(target.kind) > 0;
-    if (handIds.length <= 4 || targetIsBomb) {
+    const targetIsBomb = target && gdyBombTier(target.kind) > 0;
+    // Use bomb if: opponent about to win, target is bomb, or endgame
+    const shouldBomb = oppThreat || targetIsBomb || handIds.length <= 5;
+    // Also bomb if it lets us win immediately
+    const winWithBomb = bombs.some(b => {
+      const remaining = handIds.length - b.cardIds.length;
+      return remaining === 0;
+    });
+
+    if (shouldBomb || winWithBomb || oppCloseToWin) {
       bombs.sort((a, b) => gdyBombTier(a.kind) - gdyBombTier(b.kind) || a.strength - b.strength);
-      return bombs[0].cardIds;
+      // Human-like: don't always use smallest bomb when desperate
+      const idx = oppThreat && bombs.length > 1 ? 0 : 0;
+      return bombs[idx].cardIds;
     }
   }
 
