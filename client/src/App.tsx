@@ -44,13 +44,14 @@ export default function App() {
     return <SoloGame lang={lang} onLang={setLang} onHome={() => setScreen('mode')} />;
   }
   // online-lobby
-  if (online.game && online.room) {
-    if (online.room.phase === 'PLAYING' || online.room.phase === 'RESULTS') {
+  if (online.room) {
+    if (online.game && (online.room.phase === 'PLAYING' || online.room.phase === 'RESULTS')) {
       return (
         <OnlineGame
           lang={lang}
           view={online.game.view}
           seats={online.room.seats}
+          hostId={online.room.hostId}
           send={online.send}
           onLeave={() => {
             online.disconnect();

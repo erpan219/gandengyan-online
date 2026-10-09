@@ -252,6 +252,10 @@ wss.on('connection', (ws: WebSocket) => {
         }
         if (room.phase === 'PLAYING') break;
         if (room.fillWithBots) room.fillEmptySeats();
+        if (room.seats.some((s) => s.playerId.startsWith('empty:'))) {
+          send(ws, { type: 'ERROR', code: 'SEATS_EMPTY', message: 'All seats must be filled.' });
+          break;
+        }
         if (!room.allHumansReady()) {
           send(ws, { type: 'ERROR', code: 'NOT_READY', message: 'All players must be ready.' });
           break;

@@ -9,6 +9,7 @@ export function OnlineGame(props: {
   lang: 'zh' | 'en';
   view: PlayerView;
   seats: SeatInfo[];
+  hostId: string;
   send: (msg: ClientMsg) => void;
   onLeave: () => void;
 }): JSX.Element {
@@ -63,9 +64,13 @@ export function OnlineGame(props: {
           ))}
         </ol>
         <div className="gdy-menu">
-          <button className="gdy-bigbtn" onClick={() => props.send({ type: 'START_GAME' })}>
-            {t.rematch}
-          </button>
+          {props.view.selfId === props.hostId ? (
+            <button className="gdy-bigbtn" onClick={() => props.send({ type: 'START_GAME' })}>
+              {t.rematch}
+            </button>
+          ) : (
+            <div className="gdy-waiting">{t.waitingHost}</div>
+          )}
           <button className="gdy-bigbtn ghost" onClick={props.onLeave}>
             {t.leaveRoom}
           </button>

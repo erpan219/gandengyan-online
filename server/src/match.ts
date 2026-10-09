@@ -40,11 +40,12 @@ export class Match {
     let leader = leaderId && seatIds.includes(leaderId) ? leaderId : seatIds[0];
     let startSeatIndex = seatIds.indexOf(leader);
     if (!leaderId) {
-      // First hand: holder of S-4 leads
+      // First hand: holder of S-4 leads. Deal from seat 0 so deck index i
+      // lands on seatIds[i % n], keeping the S-4 holder calculation correct.
+      startSeatIndex = 0;
       for (let i = 0; i < shuffled.length; i++) {
         if (shuffled[i] === 'S-4') {
-          startSeatIndex = i % n;
-          leader = seatIds[startSeatIndex];
+          leader = seatIds[i % n];
           break;
         }
       }
@@ -180,6 +181,25 @@ export class Match {
         "BOT"
       );
 
+      if (!ok) this.scheduleTurn();
+      return;
+    }
+
+    // Human timeout: pass if responding, otherwise auto-play a valid lead
+    // (passing is illegal on a free lead).
+    const isFreeLead = state.lastPlay === null;
+    if (isFreeLead) {
+      const view: PlayerView = getPlayerView(state, playerId);
+      const move = chooseBotMove(view, this.room.playerCount);
+      const cardIds: CardId[] =
+        move.type === "PLAY" ? (move.cardIds as CardId[]) : [];
+      const ok = this.applyMove(
+        playerId,
+        move.type,
+        cardIds,
+        this.currentRevision(),
+        "HUMAN"
+      );
       if (!ok) this.scheduleTurn();
       return;
     }
