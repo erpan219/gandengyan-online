@@ -242,6 +242,18 @@ class Game {
     this.emit('settle', this.result);
   }
 
+  /* Stop the game (clear AI timers) */
+  stop() {
+    if (this._t) { clearTimeout(this._t); this._t = null; }
+    this.state = 'idle';
+  }
+
+  /* Start a new round */
+  nextRound() {
+    if (this._t) { clearTimeout(this._t); this._t = null; }
+    this.startRound();
+  }
+
   /* Convert our card ID to his numeric rank/suit for ui.js cardHTML */
   rankNum(id) {
     const r = gdyCardRank(id);

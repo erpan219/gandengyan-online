@@ -375,7 +375,7 @@ function dispatchAct(seat, kind, data, onErr) {
   else if (kind === 'double') ok = g.actDouble(seat, !!data.yes);
   else if (kind === 'play') ok = g.actPlay(seat, Array.isArray(data.ids) ? data.ids : []);
   else if (kind === 'pass') ok = g.actPass(seat);
-  else if (kind === 'again') g.nextRound();
+  else if (kind === 'again') { if (g.nextRound) g.nextRound(); }
   else if (kind === 'chat') hostChat(seat, data.id | 0);
   if (!ok && onErr) onErr();
 }
@@ -772,7 +772,7 @@ function bindHandDrag() {
   const cardIdAt = (x, y) => {
     const el = document.elementFromPoint(x, y);
     const c = el && el.closest('#my-hand .card');
-    return c ? +c.dataset.id : null;
+    return c ? c.dataset.id : null;
   };
   const applySel = (id, on) => {
     if (on) App.selected.add(id); else App.selected.delete(id);
@@ -781,7 +781,7 @@ function bindHandDrag() {
   };
   handEl.addEventListener('pointerdown', e => {
     const id = cardIdAt(e.clientX, e.clientY);
-    if (id === null) return;
+    if (id === null || id === '') return;
     e.preventDefault();
     try { handEl.setPointerCapture(e.pointerId); } catch (err) { }
     drag = { on: !App.selected.has(id), touched: new Set([id]) };
@@ -879,23 +879,21 @@ function toggleChatPop() {
 
 function renderSettle(v) {
   const r = v.result;
-  const iWon = r.landlordWon ? v.mySeat === v.landlord : v.mySeat !== v.landlord;
-  const chips = [t('s_base', r.base), t('s_bid', r.bid)];
-  if (r.bombs) chips.push(t('s_bombs', r.bombs));
-  if (r.spring) chips.push(t('s_spring'));
-  if (r.anti) chips.push(t('s_anti'));
-  chips.push(t('s_total', r.mult * r.bid * r.base));
-  const rows = v.players.map((p, i) => {
-    const d = r.deltas[i];
-    return `<div class="settle-row ${i === v.mySeat ? 'me' : ''}">
-      <span>${p.landlord ? '👑' : ''} ${esc(p.name)}</span>
-      <span class="${d >= 0 ? 'plus' : 'minus'}">${d >= 0 ? '+' : ''}${d}</span>
+  if (!r || !r.finishOrder) return;
+  const myPlace = r.finishOrder.indexOf(v.mySeat) + 1;
+  const iWon = myPlace === 1;
+  const placeNames = ['🏆', '🥈', '🥉', '4️⃣'];
+  const rows = r.finishOrder.map((seat, idx) => {
+    const p = v.players[seat];
+    const pts = r.roundScores ? r.roundScores[seat] : 0;
+    return `<div class="settle-row ${seat === v.mySeat ? 'me' : ''}">
+      <span>${placeNames[idx] || ''} ${esc(p.name)}</span>
+      <span class="${pts > 0 ? 'plus' : ''}">+${pts}</span>
       <span class="total">${t('score_pts', p.score)}</span></div>`;
   }).join('');
   $('#settle-overlay').innerHTML = `<div class="settle-box ${iWon ? 'won' : 'lost'}">
-    <h2>${r.landlordWon ? t('s_lwin') : t('s_fwin')}</h2>
-    <p class="personal">${iWon ? t('s_youwin') : t('s_youlose')}</p>
-    <div class="settle-chips">${chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>
+    <h2>${iWon ? t('s_youwin') : t('s_youlose')}</h2>
+    <p class="personal">${t('s_place', myPlace)}</p>
     <div class="settle-rows">${rows}</div>
     <div class="big-btns">
       <button id="btn-again" class="primary">${t('b_again')}</button>
