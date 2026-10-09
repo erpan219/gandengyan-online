@@ -95,7 +95,6 @@ function applyStaticTexts() {
   set('#t-bcreate', 'b_create'); set('#t-bcreate-d', 'b_create_d');
   set('#t-bpractice', 'b_practice'); set('#t-bpractice-d', 'b_practice_d');
   set('#t-join', 'h_join'); set('#t-rcode', 'r_code');
-  $('#btn-diag').textContent = t('diag_btn');
   set('#t-help-title', 'help_title');
   $('#btn-help').textContent = t('b_help');
   $('#btn-join').textContent = t('b_join');
@@ -412,23 +411,6 @@ function joinRoom() {
 
 /* ---------------- network diagnostics ---------------- */
 
-async function runDiag() {
-  const out = $('#diag-out');
-  out.innerHTML = `<div class="diag-line">${t('diag_running')}</div>`;
-  const r = await netDiagnose();
-  const line = (ok, label) =>
-    `<div class="diag-line">${ok ? '✅' : '❌'} ${label}</div>`;
-  let verdict;
-  if (!r.broker) verdict = t('diag_v_broker');
-  else if (r.turn) verdict = t('diag_v_good');
-  else if (r.stun) verdict = t('diag_v_noturn');
-  else verdict = t('diag_v_blocked');
-  out.innerHTML =
-    line(r.broker, t('diag_broker')) +
-    line(r.stun, t('diag_stun')) +
-    line(r.turn, t('diag_turn')) +
-    `<div class="diag-verdict">${verdict}</div>`;
-}
 
 function guestOnData(d) {
   if (!d || typeof d !== 'object') return;
@@ -906,6 +888,26 @@ function renderSettle(v) {
 
 /* ---------------- navigation / cleanup ---------------- */
 
+/* Confirm before exiting a game */
+function confirmExit() {
+  // If not in a game, just go home
+  if (!App.game && App.role !== 'online') { goHome(); return; }
+
+  const isOnline = App.role === 'online';
+  const msg = isOnline
+    ? t('exit_confirm_online')
+    : t('exit_confirm');
+
+  // Simple confirm dialog
+  if (confirm(msg)) {
+    if (isOnline) {
+      // Notify server - AI will take over
+      try { netClose(); } catch (e) {}
+    }
+    goHome();
+  }
+}
+
 function goHome() {
   sendBye();
   stopHeartbeat();
@@ -999,8 +1001,7 @@ function boot() {
   };
   $('#btn-start').onclick = hostStartGame;
   $('#btn-leave-room').onclick = goHome;
-  $('#btn-diag').onclick = runDiag;
-  $('#btn-exit-game').onclick = goHome;
+  $('#btn-exit-game').onclick = confirmExit;
   $('#btn-chat').onclick = toggleChatPop;
 
   const farewell = () => {
