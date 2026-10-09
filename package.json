@@ -1,0 +1,12 @@
+{
+  "name": "gandengyan-online",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build --workspace=gandengyan-server",
+    "build:client": "npm run build --prefix client",
+    "start": "npm start --prefix server"
+  },
+  "workspaces": ["server"]
+}

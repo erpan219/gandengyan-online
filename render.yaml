@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: gandengyan
+    runtime: node
+    buildCommand: npm --prefix server install && npm --prefix client install && npm --prefix client run build
+    startCommand: npm --prefix server start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
