@@ -526,19 +526,19 @@ function midHTML(v) {
   const sides = seatSides(v);
   let html = '<div id="center-table">';
 
-  // Helper to render a play (cards or pass) for a seat
+  // Helper: only the DOMINANT (winning) play's cards stay visible.
+  // Beaten cards disappear when a larger play lands. Passes still show as 不出.
+  const trickSeat = v.trick ? v.trick.seat : null;
   const playFor = (seat, posClass) => {
     if (seat == null || !v.players[seat]) return '';
     const p = v.players[seat];
     const lp = p.lastPlay;
     let inner = '';
-    if (lp) {
-      if (lp.pass) {
-        inner = `<div class="play-pass">不出</div>`;
-      } else if (lp.cards && lp.cards.length) {
-        const cards = lp.cards.slice().sort((a, b) => b.r - a.r);
-        inner = `<div class="play-cards">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
-      }
+    if (lp && lp.pass) {
+      inner = `<div class="play-pass">不出</div>`;
+    } else if (seat === trickSeat && v.trick && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
+      const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
+      inner = `<div class="play-cards">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
     }
     return `<div class="play-spot ${posClass}">${inner}</div>`;
   };
