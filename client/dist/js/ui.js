@@ -578,8 +578,23 @@ function actionsHTML(v) {
     const sel = v.myHand.filter(c => App.selected.has(c.id));
     let combo = null;
     if (sel.length) {
-      combo = analyze(sel.map(c => c.r), prev, v.laizi);
-      if (combo && prev && !beats(combo, prev)) combo = null;
+      const cls = gdyClassify(sel.map(c => c.id), v.n || 3);
+      if (cls.ok) {
+        combo = {
+          type: cls.combination.kind.toLowerCase().replace('_bomb', 'bomb'),
+          rank: cls.combination.strength,
+        };
+        // Check if it beats prev
+        if (prev && prev.cards) {
+          const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
+          const prevCombo = {
+            kind: kindMap[prev.type] || 'SINGLE',
+            cardCount: prev.cards.length,
+            strength: prev.rank,
+          };
+          if (!gdyCanBeat(cls.combination, prevCombo)) combo = null;
+        }
+      }
     }
     const preview = combo ? `<span class="combo-preview">${comboName(combo)}</span>` : '';
     return `${preview}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
@@ -593,11 +608,17 @@ function actionsHTML(v) {
    so re-renders (card clicks, bubbles) don't recompute move generation. */
 function canBeat(v) {
   const c = v.trick.combo;
-  const sig = [v.roundNo, v.trick.seat, c && c.type, c && c.rank, c && c.n, v.myHand.length].join('|');
-  if (App._beatSig === sig) return App._beatHas;
-  App._beatSig = sig;
-  App._beatHas = legalMoves(v.myHand.map(x => x.r), v.laizi, prevFor(v)).length > 0;
-  return App._beatHas;
+  if (!c || !c.cards) return true;  // No trick to beat, or invalid
+  // Check if player has any card that can beat
+  const handIds = v.myHand.map(card => card.id);
+  const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
+  const prevCombo = {
+    kind: kindMap[c.type] || 'SINGLE',
+    cardCount: c.cards.length,
+    strength: c.rank,
+  };
+  const plays = gdyFindPlays(handIds, prevCombo, v.n || 3);
+  return plays.length > 0;
 }
 
 function statusHTML(v) {
@@ -793,17 +814,27 @@ function layoutHand() {
 
 function doHint() {
   const v = App.view;
-  const prev = prevFor(v);
-  const moves = hintMoves(v.myHand.map(c => c.r), v.laizi, prev);
-  if (!moves.length) { if (prev) { App.selected.clear(); act('pass'); } return; }
-  // Repeated presses in the same situation cycle through the options.
-  const sig = JSON.stringify([v.roundNo, v.trick.seat, prev && prev.type, prev && prev.rank, v.myHand.length]);
-  if (App._hintSig !== sig) { App._hintSig = sig; App._hintIdx = 0; }
-  const mv = moves[App._hintIdx % moves.length];
-  App._hintIdx++;
-  const cards = materialize(v.myHand, mv.play, v.laizi);
-  if (!cards) return;
-  App.selected = new Set(cards.map(c => c.id));
+  if (!v || !v.myHand) return;
+  // Convert ui card objects back to CardIds
+  const handIds = v.myHand.map(c => c.id);
+  // Convert prev combo from ui format to gdy format
+  let prev = null;
+  const p = prevFor(v);
+  if (p && p.cards) {
+    // p is {type, rank, cards} from our buildView trick
+    // Reconstruct a minimal combination for gdyCanBeat
+    const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
+    prev = {
+      kind: kindMap[p.type] || 'SINGLE',
+      cardCount: p.cards.length,
+      strength: p.rank,
+      cardIds: p.cards.map(c => c.id),
+    };
+  }
+  const n = v.n || 3;
+  const play = gdyHint(handIds, prev, n);
+  if (!play || !play.length) { if (prev) { App.selected.clear(); act('pass'); } return; }
+  App.selected = new Set(play);
   renderGame();
 }
 

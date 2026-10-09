@@ -106,21 +106,35 @@ class Game {
   aiStep(seat) {
     try {
       const hand = this.hands[seat];
+      if (!hand || hand.length === 0) return;
       const prev = this.trick.combo && this.trick.seat !== seat ? this.trick.combo : null;
       const play = gdyBotPlay(hand, prev, this.n);
-      if (play) {
-        this.actPlay(seat, play);
+      if (play && play.length) {
+        if (!this.actPlay(seat, play)) {
+          // actPlay failed, try passing if possible
+          if (prev) this.actPass(seat);
+        }
       } else if (prev) {
         this.actPass(seat);
       } else {
         // Free lead: play lowest single
         const sorted = hand.slice().sort((a, b) =>
           gdyRankStrength(gdyCardRank(a)) - gdyRankStrength(gdyCardRank(b)));
-        this.actPlay(seat, [sorted[0]]);
+        if (sorted.length) this.actPlay(seat, [sorted[0]]);
       }
     } catch (e) {
       if (this.hooks.onError) this.hooks.onError(e);
       else if (typeof console !== 'undefined') console.error(e);
+      // Recovery: try to pass or play lowest to keep game moving
+      try {
+        const prev = this.trick.combo && this.trick.seat !== seat ? this.trick.combo : null;
+        if (prev) this.actPass(seat);
+        else if (this.hands[seat] && this.hands[seat].length) {
+          const sorted = this.hands[seat].slice().sort((a, b) =>
+            gdyRankStrength(gdyCardRank(a)) - gdyRankStrength(gdyCardRank(b)));
+          this.actPlay(seat, [sorted[0]]);
+        }
+      } catch (e2) { /* give up */ }
     }
   }
 
@@ -141,7 +155,15 @@ class Game {
     // Apply
     this.hands[seat] = hand.filter(id => !ids.has(id));
     this.trick = { combo: cls.combination, seat };
-    this.lastPlays[seat] = { cards: cardIds.map(id => ({ id, r: this.rankNum(id), s: this.suitNum(id) })), pass: false };
+    const comboForUi = {
+      type: cls.combination.kind.toLowerCase().replace('_bomb', 'bomb'),
+      rank: cls.combination.strength,
+    };
+    this.lastPlays[seat] = {
+      cards: cardIds.map(id => ({ id, r: this.rankNum(id), s: this.suitNum(id) })),
+      combo: comboForUi,
+      pass: false
+    };
     // Clear others' last plays when starting new trick
     if (!prev) {
       for (let i = 0; i < this.n; i++) {
