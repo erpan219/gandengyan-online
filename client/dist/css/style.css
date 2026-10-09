@@ -138,7 +138,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 }
 .badge.lord { background: rgba(245,192,78,.3); color: #ffd67e; }
 .badge.ally { background: rgba(126,190,255,.25); color: #a9d4ff; }
-.opp-play { min-height: 46px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.opp-play { min-height: 80px; display: flex; align-items: center; justify-content: center; min-height: 46px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .say {
   background: rgba(255,255,255,.14); border-radius: 999px; padding: 4px 14px; font-size: 13px;
 }
@@ -173,13 +173,13 @@ button.off { opacity: .38; text-decoration: line-through; }
   content: '癞'; position: absolute; bottom: 4px; left: 5px; font-size: 11px;
   color: #fff; background: #b76bf0; border-radius: 5px; padding: 1px 3px;
 }
-.card.mini { width: 38px; height: 54px; padding: 2px 4px; border-radius: 5px; }
-.card.mini .cr { font-size: 13px; }
-.card.mini .cs { font-size: 11px; }
+.card.mini { width: 52px; height: 74px; padding: 3px 5px; border-radius: 7px; }
+.card.mini .cr { font-size: 17px; }
+.card.mini .cs { font-size: 15px; }
 .card.mini.jk .jk-txt { font-size: 7px; width: 8px; }
 .card.mini.jk .cs { bottom: 3px; left: 3px; font-size: 9px; }
 .card.mini.lz::after { font-size: 8px; padding: 0 2px; }
-.mini-cards .card { margin-left: -18px; }
+.mini-cards .card { margin-left: -24px; }
 .mini-cards .card:first-child { margin-left: 0; }
 
 /* ---------- my zone ---------- */
