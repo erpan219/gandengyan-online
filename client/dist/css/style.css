@@ -488,3 +488,96 @@ button.off { opacity: .38; text-decoration: line-through; }
   border: 2px solid #ffd700;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
+
+/* === Real card table layout: seats around the table === */
+#seat-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+  min-height: 0;
+}
+#seat-top .opp {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+/* Glassmorphism player panels (AurexloveU-inspired) */
+.opp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  color: #fff;
+}
+.opp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Side seats: vertical on desktop */
+.seat-side .opp {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-width: 100px;
+  padding: 12px 10px;
+}
+.seat-side .opp-head {
+  flex-direction: column;
+}
+
+/* Table felt */
+#table-mid {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255,215,0,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 70%),
+    linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
+  border: 2px solid rgba(255,215,0,0.25);
+  border-radius: 20px;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Responsive cards (AurexloveU-inspired clamp) */
+.card {
+  width: clamp(48px, 8vw, 72px);
+  height: calc(clamp(48px, 8vw, 72px) * 1.4);
+}
+
+/* Mobile: compact top bar, sides side-by-side */
+@media (max-width: 720px) {
+  #seat-top {
+    margin-bottom: 6px;
+  }
+  #seat-top .opp {
+    min-width: 0;
+    width: 100%;
+    padding: 6px 12px;
+    flex-direction: row;
+  }
+  #seat-top .avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+  .seat-side .opp {
+    flex-direction: row;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+  .seat-side .opp-head {
+    flex-direction: row;
+  }
+  #opp-row {
+    gap: 6px;
+  }
+  .opp-zone {
+    flex: 1;
+  }
+}

@@ -566,8 +566,6 @@ function midHTML(v) {
   if (sides.top != null) html += playFor(sides.top, 'pos-top');
 
   html += '</div>';
-  // 4-player: top opponent's tag panel goes above the center table
-  if (sides.top != null) html = oppPanelHTML(v, sides.top) + html;
   return html;
 }
 
@@ -706,6 +704,11 @@ function renderGame() {
   const sides = seatSides(v);
   $('#opp-left').innerHTML = sides.left !== null ? oppPanelHTML(v, sides.left) : '';
   $('#opp-right').innerHTML = sides.right !== null ? oppPanelHTML(v, sides.right) : '';
+  const seatTop = $('#seat-top');
+  if (seatTop) {
+    seatTop.innerHTML = sides.top !== null ? oppPanelHTML(v, sides.top) : '';
+    seatTop.style.display = sides.top !== null ? '' : 'none';
+  }
   $('#table-mid').innerHTML = midHTML(v);
 
   // my last play is shown in center pos-bottom, hide the old line
