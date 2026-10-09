@@ -485,17 +485,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   gap: 10px;
 }
 
-/* Side seats: vertical on desktop */
-.seat-side .opp {
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-  min-width: 100px;
-  padding: 12px 10px;
-}
-.seat-side .opp-head {
-  flex-direction: column;
-}
+/* (consolidated below) */
 
 /* Table felt */
 #table-mid {
