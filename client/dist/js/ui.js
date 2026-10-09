@@ -955,17 +955,26 @@ function animateLandlord(v) {
   });
 }
 
+// Event delegation: single listener on #actions survives innerHTML re-renders.
+// Fixes bug where buttons rendered but clicks did nothing after rapid re-renders.
+let _actionsDelegated = false;
 function bindActionButtons() {
-  $$('#actions [data-bid]').forEach(b => b.onclick = () => act('bid', { v: +b.dataset.bid }));
-  $$('#actions [data-dbl]').forEach(b => b.onclick = () => act('double', { yes: +b.dataset.dbl === 1 }));
-  const hint = $('#actions [data-act=hint]');
-  if (hint) hint.onclick = doHint;
-  const pass = $('#actions [data-act=pass]');
-  if (pass) pass.onclick = () => { App.selected.clear(); act('pass'); };
-  const cancelAp = $('#actions [data-act=cancel-autoplay]');
-  if (cancelAp) cancelAp.onclick = () => cancelAutoPlay();
-  const play = $('#actions [data-act=play]');
-  if (play) play.onclick = () => act('play', { ids: [...App.selected] });
+  if (_actionsDelegated) return;
+  _actionsDelegated = true;
+  const el = $('#actions');
+  if (!el) return;
+  el.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act],[data-bid],[data-dbl]');
+    if (!btn) return;
+    if (btn.disabled) return;
+    if (btn.dataset.bid !== undefined) { act('bid', { v: +btn.dataset.bid }); return; }
+    if (btn.dataset.dbl !== undefined) { act('double', { yes: +btn.dataset.dbl === 1 }); return; }
+    const kind = btn.dataset.act;
+    if (kind === 'hint') doHint();
+    else if (kind === 'pass') { App.selected.clear(); act('pass'); }
+    else if (kind === 'cancel-autoplay') cancelAutoPlay();
+    else if (kind === 'play') act('play', { ids: [...App.selected] });
+  });
 }
 
 /* Drag across the hand to (de)select a run of cards; a plain tap still
