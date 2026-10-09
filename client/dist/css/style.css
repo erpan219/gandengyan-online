@@ -400,3 +400,91 @@ button.off { opacity: .38; text-decoration: line-through; }
   .play-spot.pos-left { left: 5px; }
   .play-spot.pos-right { right: 5px; }
 }
+
+/* === Qwen-designed animations === */
+
+/* 1. Card deal: slide onto table with slight rotation */
+@keyframes cardDeal {
+  0% { transform: translateY(-40px) scale(0.8) rotate(-5deg); opacity: 0; }
+  60% { transform: translateY(5px) scale(1.05) rotate(2deg); opacity: 1; }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+.play-cards .card {
+  animation: cardDeal 0.4s ease-out;
+}
+
+/* 2. Bomb explosion: flash and scale */
+@keyframes bombBlast {
+  0% { transform: scale(0.5); filter: brightness(3); opacity: 0; }
+  50% { transform: scale(1.3); filter: brightness(2); opacity: 1; }
+  100% { transform: scale(1); filter: brightness(1); opacity: 1; }
+}
+.play-cards.bomb-play .card {
+  animation: bombBlast 0.5s ease-out;
+}
+
+/* 3. Turn indicator: pulsing glow around active player */
+@keyframes turnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 215, 0, 0); }
+}
+.opp.turn {
+  animation: turnPulse 1.2s infinite;
+  border-color: #ffd700;
+}
+#my-panel.turn {
+  animation: turnPulse 1.2s infinite;
+}
+
+/* 4. Card hover lift (enhanced) */
+#my-hand .card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+#my-hand .card:hover {
+  transform: translateY(-12px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  z-index: 10;
+}
+#my-hand .card.selected {
+  transform: translateY(-18px);
+  box-shadow: 0 0 0 2px #ffd700, 0 10px 25px rgba(0,0,0,0.5);
+}
+
+/* 5. Win celebration */
+@keyframes winBounce {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-20px) rotate(-3deg); }
+  50% { transform: translateY(0) rotate(3deg); }
+  75% { transform: translateY(-10px) rotate(-2deg); }
+}
+.winner-cards .card {
+  animation: winBounce 1s ease-in-out;
+}
+
+/* === Table polish === */
+#table {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255,215,0,0.08) 0%, transparent 60%),
+    linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
+  border-radius: 20px;
+  border: 3px solid #8b6914;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
+}
+#center-table {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, transparent 70%);
+  border: 2px solid rgba(255,215,0,0.2);
+}
+
+/* Avatar styling */
+.avatar {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff8e1, #ffecb3);
+  border-radius: 50%;
+  border: 2px solid #ffd700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}

@@ -1,3 +1,18 @@
+// Fun random AI names (Qwen-generated)
+const FUN_AI_NAMES = ["Uncle Wang", "Auntie Li", "Spicy Noodle", "Lucky Cat", "Dumpling Dragon", "Auntie Mei", "Uncle Chen", "Panda Bingo", "Hotpot Hero", "Grandma Zhao", "Uncle Fu", "Little Bao", "Tea Egg Tiger", "Auntie Hua", "Noodle Ninja", "Sesame Bunny", "Uncle Long", "Mooncake Moose", "Auntie Jin", "Wonton Wizard"];
+function randomAIName(usedNames) {
+  const available = FUN_AI_NAMES.filter(n => !usedNames.includes(n));
+  const pool = available.length ? available : FUN_AI_NAMES;
+  const name = pool[Math.floor(Math.random() * pool.length)];
+  usedNames.push(name);
+  return name;
+}
+function avatarForName(name) {
+  const map = {'Uncle Wang':'👨','Auntie Li':'👩','Spicy Noodle':'🍜','Lucky Cat':'🐱','Dumpling Dragon':'🐉','Auntie Mei':'👵','Uncle Chen':'🧔','Panda Bingo':'🐼','Hotpot Hero':'🍲','Grandma Zhao':'👵','Uncle Fu':'👴','Little Bao':'🥟','Tea Egg Tiger':'🐯','Auntie Hua':'🌸','Noodle Ninja':'🥷','Sesame Bunny':'🐰','Uncle Long':'🐲','Mooncake Moose':'🦌','Auntie Jin':'✨','Wonton Wizard':'🧙'};
+  return map[name] || '🎴';
+}
+
+
 'use strict';
 /* ui.js — screens, rendering and the host/guest glue.
    Roles: 'local' (practice, everything in-page), 'host' (runs the Game and
@@ -267,7 +282,7 @@ function startPractice() {
   App.role = 'local';
   const players = [{ name: App.name }];
   const total = seatsForMode(App.cfg.mode);
-  while (players.length < total) players.push({ name: 'AI ' + players.length, isAI: true });
+  (() => { const used = [App.name]; while (players.length < total) players.push({ name: randomAIName(used), isAI: true }); })();
   newGame(players);
 }
 
@@ -359,7 +374,7 @@ function hostStartGame() {
   }
   const players = [{ name: App.name }];
   for (const g of App.guests) players.push({ name: g.name });
-  while (players.length < roomCapacity()) players.push({ name: 'AI ' + players.length, isAI: true });
+  (() => { const used2 = players.map(p => p.name); while (players.length < roomCapacity()) players.push({ name: randomAIName(used2), isAI: true }); })();
   App.conns = {};
   App.guests.forEach((g, i) => { if (g.conn) App.conns[i + 1] = g.conn; });
   newGame(players);
@@ -499,7 +514,7 @@ function oppPanelHTML(v, seat) {
     ? `<div class="mini-cards reveal">${p.hand.map(c => cardHTML(c, 'mini', v.laizi)).join('')}</div>` : '';
   return `<div class="opp ${isTurn ? 'turn' : ''}" data-seat="${seat}">
     <div class="opp-head">
-      <span class="avatar">${p.isAI ? '🤖' : '🧑'}</span>
+      <span class="avatar">${p.isAI ? avatarForName(p.name) : '🧑'}</span>
       <div class="opp-names">
         <div class="pname">${esc(p.name)}${p.isAI ? ` <span class="tag">${t('ai_tag')}</span>` : ''} ${badge}</div>
         <div class="pmeta">${t('score_pts', p.score)} · ${t('cards_left', p.cardCount)}</div>
@@ -538,7 +553,8 @@ function midHTML(v) {
       inner = `<div class="play-pass">不出</div>`;
     } else if (seat === trickSeat && v.trick && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
       const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
-      inner = `<div class="play-cards">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
+      const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
+      inner = `<div class="play-cards${isBomb ? ' bomb-play' : ''}">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
     }
     return `<div class="play-spot ${posClass}">${inner}</div>`;
   };
