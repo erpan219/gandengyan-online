@@ -1036,8 +1036,23 @@ function doHint() {
     };
   }
   const n = v.n || 3;
-  const play = gdyHint(handIds, prev, n);
+  // Opponent card counts for smart hints (same as AI sees)
+  const oppCounts = v.players
+    .map((p, i) => i === v.mySeat ? -1 : p.cardCount)
+    .filter(c => c >= 0);
+  const play = gdyHint(handIds, prev, n, oppCounts);
   if (!play || !play.length) { if (prev) { App.selected.clear(); act('pass'); } return; }
+  // Show hint explanation
+  const expl = gdyHintExplanation();
+  if (expl) {
+    const reasonText = {
+      'tempo': 'take_tempo', 'efficient': 'efficient_dump', 'save_high': 'save_high',
+      'breaks_bomb': 'breaks_bomb', 'block_win': 'block_win', 'endgame': 'endgame_push',
+      'save_bomb': 'save_bomb', 'dump_low': 'dump_low', 'wasteful': 'wasteful_warn', 'safe': 'safe_play'
+    };
+    const confText = { 'best': 'hint_best', 'good': 'hint_good', 'safe': 'hint_safe' };
+    toast(t(reasonText[expl.reason] || 'safe_play') + ' · ' + t(confText[expl.confidence] || 'hint_safe'));
+  }
   App.selected = new Set(play);
   renderGame();
 }

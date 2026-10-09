@@ -324,6 +324,89 @@ function gdyBotPlay(handIds, target, playerCount, oppCounts) {
 }
 
 /* Hint: find a play for the player */
-function gdyHint(handIds, target, playerCount) {
-  return gdyBotPlay(handIds, target, playerCount);
+// Ranked hint system: returns scored plays with explanations, cycles through alternatives
+let _hintCache = { key: null, plays: [], idx: 0 };
+
+function gdyHintRanked(handIds, target, playerCount, oppCounts) {
+  oppCounts = oppCounts || [];
+  const plays = gdyFindPlays(handIds, target, playerCount);
+  if (!plays.length) return [];
+
+  const rankCount = {};
+  for (const id of handIds) {
+    const r = gdyCardRank(id);
+    rankCount[r] = (rankCount[r] || 0) + 1;
+  }
+  const isBombRank = (r) => (rankCount[r] || 0) >= 3 && r !== 'SJ' && r !== 'BJ';
+  const oppThreat = oppCounts.some(c => c <= 2);
+
+  // Score each play using AI heuristics
+  const scored = plays.map(p => {
+    let score = 50;
+    let reason = 'safe';
+
+    const tier = gdyBombTier(p.kind);
+    const preserves = tier > 0 || !p.cardIds.some(id => isBombRank(gdyCardRank(id)));
+
+    if (!target) {
+      // Leading: prefer efficient dumps
+      score = p.cardCount * 10;
+      if (p.kind === 'STRAIGHT') { score += 8; reason = 'tempo'; }
+      else if (p.kind === 'PAIR' || p.kind === 'PAIR_RUN') { score += 5; reason = 'efficient'; }
+      if (p.strength > 10) { score -= (p.strength - 10) * 2; reason = 'save_high'; }
+      if (!preserves) { score -= 30; reason = 'breaks_bomb'; }
+    } else {
+      // Responding
+      if (tier > 0) {
+        score = 40 + tier * 10;
+        if (oppThreat) { score += 25; reason = 'block_win'; }
+        else if (handIds.length <= 5) { score += 15; reason = 'endgame'; }
+        else { score -= 20; reason = 'save_bomb'; }
+      } else {
+        score = 100 - p.strength;
+        if (p.cardCount === 1 && p.strength < 8) { score += 10; reason = 'dump_low'; }
+        if (target.strength < 6 && p.strength >= 8) { score -= 45; reason = 'wasteful'; }
+        if (oppThreat) { score += 15; reason = 'block_win'; }
+        if (!preserves) { score -= 25; reason = 'breaks_bomb'; }
+      }
+    }
+    score += Math.random() * 2; // tie-breaker
+    return { play: p, score, reason };
+  });
+
+  // Sort by score, deduplicate
+  scored.sort((a, b) => b.score - a.score);
+  const seen = new Set();
+  const ranked = [];
+  for (const s of scored) {
+    const key = s.play.kind + ':' + s.play.cardIds.slice().sort().join(',');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Confidence based on score gap from top
+    const gap = scored[0].score - s.score;
+    s.confidence = gap < 5 ? 'best' : gap < 20 ? 'good' : 'safe';
+    ranked.push(s);
+    if (ranked.length >= 5) break; // top 5 alternatives
+  }
+  return ranked;
+}
+
+function gdyHint(handIds, target, playerCount, oppCounts) {
+  const key = handIds.slice().sort().join(',') + '|' +
+    (target ? target.kind + target.strength : 'lead') + '|' + playerCount;
+  // Reset cycle if game state changed
+  if (_hintCache.key !== key) {
+    _hintCache = { key, plays: gdyHintRanked(handIds, target, playerCount, oppCounts), idx: 0 };
+  }
+  if (!_hintCache.plays.length) return null;
+  const result = _hintCache.plays[_hintCache.idx % _hintCache.plays.length];
+  _hintCache.idx++;
+  return result.play.cardIds;
+}
+
+// Get explanation for current hint
+function gdyHintExplanation() {
+  if (!_hintCache.plays.length) return null;
+  const idx = (_hintCache.idx - 1 + _hintCache.plays.length) % _hintCache.plays.length;
+  return _hintCache.plays[idx];
 }
