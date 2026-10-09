@@ -750,3 +750,24 @@ button.off { opacity: .38; text-decoration: line-through; }
 .table-pass.no-anim {
   animation: none !important;
 }
+/* Auto-play timeout UI */
+.autoplay-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 12px;
+  animation: autoplayPulse 1.5s infinite;
+}
+.autoplay-label {
+  color: #ffc107;
+  font-weight: 700;
+  font-size: 14px;
+}
+@keyframes autoplayPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 193, 7, 0); }
+}

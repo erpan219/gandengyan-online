@@ -33,6 +33,9 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
 const App = {
+  autoPlay: false,
+  turnTimer: null,
+  turnDeadline: 0,
   role: null,
   name: '',
   cfg: null,
@@ -274,6 +277,9 @@ function pushViews() {
 }
 
 function newGame(players) {
+  // Reset auto-play on new game
+  App.autoPlay = false;
+  clearTurnTimer();
   App.game = new Game(Object.assign({}, App.cfg, { players, playerCount: seatsForMode(App.cfg.mode) }), {
     onUpdate: () => pushViews(),
     onEvent: (ev) => {
@@ -620,6 +626,11 @@ function actionsHTML(v) {
   }
   if (v.state === 'playing') {
     if (!mine) return statusHTML(v);
+    // Auto-play mode: show cancel button prominently
+    if (App.autoPlay) {
+      return `<div class="autoplay-bar"><span class="autoplay-label">${t('autoplay_active')}</span>` +
+        `<button class="act-btn primary" data-act="cancel-autoplay">${t('cancel_autoplay')}</button></div>`;
+    }
     const prev = prevFor(v);
     if (prev && !canBeat(v)) {
       return `<button class="act-btn noplay" data-act="pass">${t('cant_beat')}</button>`;
@@ -720,6 +731,79 @@ function playSounds(v) {
   if (v.state === 'playing' && cur.actor === v.mySeat && prev.actor !== v.mySeat) Snd.turn();
 }
 
+
+/* ---------------- turn timeout & auto-play ---------------- */
+const TURN_TIMEOUT_MS = 30000;
+
+function clearTurnTimer() {
+  if (App.turnTimer) {
+    clearTimeout(App.turnTimer);
+    App.turnTimer = null;
+  }
+}
+
+function startTurnTimer() {
+  clearTurnTimer();
+  if (App.autoPlay) return; // already in auto-play, no timer needed
+  App.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
+  App.turnTimer = setTimeout(onTurnTimeout, TURN_TIMEOUT_MS);
+}
+
+function onTurnTimeout() {
+  const v = App.view;
+  if (!v || v.state !== 'playing' || v.actor !== v.mySeat) return;
+  // Enter auto-play mode
+  App.autoPlay = true;
+  toast(t('autoplay_on'));
+  renderGame();
+  // Execute auto-play move after brief delay
+  setTimeout(autoPlayMove, 800);
+}
+
+function autoPlayMove() {
+  const v = App.view;
+  if (!v || !App.autoPlay) return;
+  if (v.state !== 'playing' || v.actor !== v.mySeat) return;
+
+  // Use AI logic to determine best move
+  const handIds = v.myHand.map(c => c.id);
+  const prev = prevFor(v);
+  const target = prev && prev.cards ? prevToCombo(prev, v.n || 3) : null;
+  const play = gdyBotPlay(handIds, target, v.n || 3, []);
+
+  if (play && play.length) {
+    act('play', { ids: play });
+  } else if (target) {
+    act('pass');
+  } else {
+    // Free lead but no play found (shouldn't happen) - play lowest single
+    const sorted = handIds.slice().sort((a, b) => gdyCardRank(a).length - gdyCardRank(b).length);
+    if (sorted.length) act('play', { ids: [sorted[0]] });
+  }
+  // Schedule next auto-play move if still our turn after this one
+  // (renderGame will trigger via state update, but add fallback)
+}
+
+function cancelAutoPlay() {
+  App.autoPlay = false;
+  clearTurnTimer();
+  toast(t('autoplay_off'));
+  renderGame();
+  // Restart timer for current turn
+  const v = App.view;
+  if (v && v.state === 'playing' && v.actor === v.mySeat) {
+    startTurnTimer();
+  }
+}
+
+// Convert prev play to combo format for AI
+function prevToCombo(prev, playerCount) {
+  if (!prev || !prev.cards || !prev.cards.length) return null;
+  const cls = gdyClassify(prev.cards.map(c => c.id || c), playerCount);
+  return cls.ok ? cls.combination : null;
+}
+
+
 function renderGame() {
   const v = App.view;
   if (!v) return;
@@ -813,6 +897,8 @@ function bindActionButtons() {
   if (hint) hint.onclick = doHint;
   const pass = $('#actions [data-act=pass]');
   if (pass) pass.onclick = () => { App.selected.clear(); act('pass'); };
+  const cancelAp = $('#actions [data-act=cancel-autoplay]');
+  if (cancelAp) cancelAp.onclick = () => cancelAutoPlay();
   const play = $('#actions [data-act=play]');
   if (play) play.onclick = () => act('play', { ids: [...App.selected] });
 }
