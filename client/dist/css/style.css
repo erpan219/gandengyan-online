@@ -301,7 +301,9 @@ button.off { opacity: .38; text-decoration: line-through; }
   .home-head h1 { font-size: 26px; }
   .head-btns { position: static; justify-content: center; margin-top: 12px; }
   .join-row input { letter-spacing: 4px; font-size: 18px; }
-  /* (removed: superseded by side-panel layout) */
+  #opp-row { flex-direction: row; flex-wrap: wrap; }
+  .opp-zone { flex-basis: 46%; }
+  #table-mid { order: 3; flex-basis: 100%; }
   .card { width: 46px; height: 66px; padding: 3px 4px; }
   .card .cr { font-size: 15px; }
   .card .cs { font-size: 13px; }
@@ -483,7 +485,17 @@ button.off { opacity: .38; text-decoration: line-through; }
   gap: 10px;
 }
 
-/* (consolidated below) */
+/* Side seats: vertical on desktop */
+.seat-side .opp {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-width: 100px;
+  padding: 12px 10px;
+}
+.seat-side .opp-head {
+  flex-direction: column;
+}
 
 /* Table felt */
 #table-mid {
@@ -491,7 +503,7 @@ button.off { opacity: .38; text-decoration: line-through; }
     radial-gradient(ellipse at 50% 40%, rgba(255,215,0,0.06) 0%, transparent 60%),
     radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 70%),
     linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
-  border: 1px solid rgba(0,0,0,0.3);
+  border: 2px solid rgba(255,215,0,0.25);
   border-radius: 20px;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
 }
@@ -699,55 +711,6 @@ button.off { opacity: .38; text-decoration: line-through; }
 
 /* Mobile: compact */
 @media (max-width: 720px) {
-  /* Side panels flank the table on mobile too */
-  #opp-row {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 6px;
-  }
-  #opp-left, #opp-right {
-    flex: 0 0 72px;
-    display: flex;
-  }
-  #opp-left .opp, #opp-right .opp {
-    flex: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 8px 4px;
-    min-width: 0;
-  }
-  #opp-left .opp-head, #opp-right .opp-head {
-    flex-direction: column;
-    align-items: center;
-  }
-  #opp-left .avatar, #opp-right .avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 22px;
-    margin-bottom: 4px;
-  }
-  #opp-left .pname, #opp-right .pname {
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 64px;
-  }
-  #opp-left .pmeta, #opp-right .pmeta {
-    font-size: 11px;
-    color: #ffd700;
-    font-weight: 700;
-  }
-  #opp-left .tag, #opp-right .tag {
-    display: none;
-  }
-  #table-mid {
-    flex: 1;
-    min-width: 0;
-  }
   #center-table { min-height: 190px; }
   .table-cards .card {
     width: clamp(40px, 10vw, 54px);
@@ -786,231 +749,4 @@ button.off { opacity: .38; text-decoration: line-through; }
 .table-cards.no-anim .card,
 .table-pass.no-anim {
   animation: none !important;
-}
-/* ============================================================
-   AAA VISUAL UPGRADE - Senior Game Designer & UI/UX Artist
-   Art direction: festive Chinese lacquer + gold, Hearthstone-grade
-   ============================================================ */
-
-:root {
-  --aaa-crimson: #D7263D;
-  --aaa-crimson-deep: #8B1538;
-  --aaa-gold: #E9B44C;
-  --aaa-gold-bright: #FFC93C;
-  --aaa-dark: #260A0F;
-  --aaa-cream: #F7E7C3;
-  --aaa-text: #FFF8E7;
-}
-
-/* --- Premium card faces: lacquered with gold filigree --- */
-.card {
-  background: linear-gradient(145deg, #FFFEF9 0%, #F7E7C3 40%, #FFF8E7 70%, #F0DDAE 100%);
-  border: 2px solid var(--aaa-crimson);
-  border-radius: 10px;
-  box-shadow:
-    0 4px 12px rgba(38, 10, 15, 0.35),
-    0 1px 3px rgba(38, 10, 15, 0.2),
-    inset 0 0 0 1px rgba(233, 180, 76, 0.4),
-    inset 0 2px 4px rgba(255, 255, 255, 0.6);
-  position: relative;
-  overflow: hidden;
-}
-/* Gold filigree inner border */
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(233, 180, 76, 0.35);
-  border-radius: 7px;
-  pointer-events: none;
-}
-/* Red suits: rich crimson with depth */
-.card.red .cr, .card.red .cs {
-  color: #C41E3A;
-  text-shadow: 0 1px 1px rgba(196, 30, 58, 0.2);
-  font-weight: 800;
-}
-/* Black suits: deep ink with warmth */
-.card.black .cr, .card.black .cs {
-  color: #2A1A1E;
-  text-shadow: 0 1px 1px rgba(42, 26, 30, 0.15);
-  font-weight: 800;
-}
-/* Card back: lacquered red with gold pattern */
-.card.back {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 201, 60, 0.15) 0%, transparent 60%),
-    repeating-linear-gradient(45deg, rgba(233,180,76,0.08) 0px, rgba(233,180,76,0.08) 2px, transparent 2px, transparent 8px),
-    linear-gradient(145deg, #D7263D 0%, #8B1538 100%);
-  border-color: var(--aaa-gold);
-}
-/* Selected: golden glow lift */
-#my-hand .card.selected {
-  transform: translateY(-20px);
-  border-color: var(--aaa-gold-bright);
-  box-shadow:
-    0 0 0 2px var(--aaa-gold-bright),
-    0 0 24px rgba(255, 201, 60, 0.6),
-    0 12px 28px rgba(38, 10, 15, 0.4),
-    inset 0 0 0 1px rgba(233, 180, 76, 0.6);
-}
-/* Hover: sheen sweep */
-#my-hand .card:hover {
-  transform: translateY(-14px);
-}
-#my-hand .card:hover::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
-  animation: sheen 0.5s ease-out;
-  pointer-events: none;
-}
-@keyframes sheen {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(100%); }
-}
-
-/* --- AAA buttons: lacquered plaques with gold rims --- */
-.btn, button.action-btn {
-  background: linear-gradient(180deg, #E63950 0%, #D7263D 40%, #8B1538 100%);
-  border: 2px solid var(--aaa-gold);
-  border-radius: 14px;
-  color: var(--aaa-text);
-  font-weight: 800;
-  text-shadow: 0 2px 4px rgba(38, 10, 15, 0.6);
-  box-shadow:
-    0 4px 12px rgba(38, 10, 15, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-  padding: 12px 28px;
-  letter-spacing: 1px;
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
-  position: relative;
-  overflow: hidden;
-}
-.btn:hover, button.action-btn:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.15);
-  box-shadow:
-    0 6px 20px rgba(215, 38, 61, 0.5),
-    0 0 16px rgba(255, 201, 60, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-.btn:active, button.action-btn:active {
-  transform: translateY(1px) scale(0.98);
-}
-/* Gold shimmer on primary action */
-.btn.primary, #btn-play {
-  background: linear-gradient(180deg, #FFD700 0%, #E9B44C 40%, #B8860B 100%);
-  color: #4A0E0E;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-  border-color: #FFF8E7;
-}
-
-/* --- Table: crimson silk with spotlight and vignette --- */
-#table-mid {
-  background:
-    radial-gradient(ellipse at 50% 35%, rgba(255, 201, 60, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse at center, rgba(215, 38, 61, 0.08) 0%, transparent 70%),
-    linear-gradient(160deg, #3D0F1A 0%, #260A0F 50%, #1A060A 100%);
-  border: none;
-  border-radius: 24px;
-  box-shadow:
-    inset 0 0 80px rgba(0, 0, 0, 0.6),
-    inset 0 0 30px rgba(215, 38, 61, 0.15),
-    0 8px 32px rgba(0, 0, 0, 0.5);
-  position: relative;
-}
-/* Subtle cloud pattern overlay */
-#table-mid::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 20% 30%, rgba(233,180,76,0.04) 0%, transparent 40%),
-                    radial-gradient(circle at 80% 70%, rgba(233,180,76,0.04) 0%, transparent 40%);
-  border-radius: 24px;
-  pointer-events: none;
-}
-
-/* --- Player panels: jade-inlaid lacquer --- */
-.opp {
-  background: linear-gradient(135deg, rgba(38,10,15,0.85), rgba(61,15,26,0.75));
-  border: 1px solid rgba(233, 180, 76, 0.35);
-  border-radius: 18px;
-  backdrop-filter: blur(16px);
-  box-shadow:
-    0 8px 28px rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,248,231,0.12),
-    inset 0 0 20px rgba(215,38,61,0.08);
-}
-.opp.turn {
-  border-color: var(--aaa-gold-bright);
-  box-shadow:
-    0 0 0 2px rgba(255,201,60,0.5),
-    0 0 32px rgba(255,201,60,0.35),
-    0 8px 28px rgba(0,0,0,0.45);
-}
-
-/* --- Typography: premium serif for headings --- */
-h1, h2, .game-title {
-  font-family: "STKaiti", "KaiTi", "SimSun", serif;
-  color: var(--aaa-gold-bright);
-  text-shadow:
-    0 2px 0 #7A1F1F,
-    0 4px 12px rgba(0,0,0,0.5),
-    0 0 30px rgba(255,201,60,0.3);
-  letter-spacing: 4px;
-}
-
-/* === 3-player: opponents sit lower, across from you === */
-body[data-players="3"] #opp-row {
-  align-items: flex-end;
-}
-body[data-players="3"] .seat-side {
-  align-self: flex-end;
-  margin-bottom: 20px;
-}
-body[data-players="3"] #table-mid {
-  /* Table shifts up slightly to balance */
-  margin-bottom: 10px;
-}
-/* 3P table spots: left/right lower to match panels */
-body[data-players="3"] .ts-left,
-body[data-players="3"] .ts-right {
-  top: 65%;
-}
-@media (max-width: 720px) {
-  body[data-players="3"] .seat-side {
-    margin-bottom: 12px;
-  }
-  body[data-players="3"] .ts-left,
-  body[data-players="3"] .ts-right {
-    top: 62%;
-  }
-}
-
-/* 3-player: bigger table, compact side panels */
-body[data-players="3"] #opp-left,
-body[data-players="3"] #opp-right {
-  flex: 0 0 56px !important;
-}
-body[data-players="3"] #table-mid {
-  flex: 1 !important;
-}
-@media (max-width: 720px) {
-  body[data-players="3"] #opp-left,
-  body[data-players="3"] #opp-right {
-    flex: 0 0 52px !important;
-  }
-  body[data-players="3"] #opp-left .pname,
-  body[data-players="3"] #opp-right .pname {
-    display: none;
-  }
-  body[data-players="3"] #opp-left .avatar,
-  body[data-players="3"] #opp-right .avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 20px;
-  }
 }
