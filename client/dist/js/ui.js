@@ -536,38 +536,38 @@ function centerHTML(v) {
 }
 
 function midHTML(v) {
-  // Central play area: each player's last play positioned by seat, like pro clients.
-  // Bottom = me, left/right = opponents. Large cards, clearly visible.
   const sides = seatSides(v);
   let html = '<div id="center-table">';
 
-  // Helper: only the DOMINANT (winning) play's cards stay visible.
-  // Beaten cards disappear when a larger play lands. Passes still show as 不出.
   const trickSeat = v.trick ? v.trick.seat : null;
-  const playFor = (seat, posClass) => {
-    if (seat == null || !v.players[seat]) return '';
-    const p = v.players[seat];
-    const lp = p.lastPlay;
-    let inner = '';
-    if (lp && lp.pass) {
-      inner = `<div class="play-pass">不出</div>`;
-    } else if (seat === trickSeat && v.trick && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
-      const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
-      const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
-      inner = `<div class="play-cards${isBomb ? ' bomb-play' : ''}">${cards.map(c => cardHTML(c, '', v.laizi)).join('')}</div>`;
-    }
-    return `<div class="play-spot ${posClass}">${inner}</div>`;
-  };
 
-  // Position plays: me at bottom, opponents left/right
-  html += playFor(v.mySeat, 'pos-bottom');
-  if (sides.left != null) html += playFor(sides.left, 'pos-left');
-  if (sides.right != null) html += playFor(sides.right, 'pos-right');
-  if (sides.top != null) html += playFor(sides.top, 'pos-top');
+  // Dominant play: LARGE and CENTERED
+  if (trickSeat != null && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
+    const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
+    const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
+    const playerName = v.players[trickSeat] ? esc(v.players[trickSeat].name) : '';
+    html += '<div class="dominant-play">';
+    html += '<div class="dp-name">' + playerName + '</div>';
+    html += '<div class="play-cards' + (isBomb ? ' bomb-play' : '') + '">' + cards.map(c => cardHTML(c, '', v.laizi)).join('') + '</div>';
+    html += '</div>';
+  }
+
+  // Pass indicators at each player's edge
+  const passFor = (seat, cls) => {
+    if (seat == null || !v.players[seat]) return '';
+    const lp = v.players[seat].lastPlay;
+    if (lp && lp.pass) return '<div class="pass-spot ' + cls + '">\u4e0d\u51fa</div>';
+    return '';
+  };
+  html += passFor(v.mySeat, 'pp-bottom');
+  html += passFor(sides.left, 'pp-left');
+  html += passFor(sides.right, 'pp-right');
+  html += passFor(sides.top, 'pp-top');
 
   html += '</div>';
   return html;
 }
+
 
 function myInfoHTML(v) {
   const p = v.players[v.mySeat];

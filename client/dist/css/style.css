@@ -581,3 +581,70 @@ button.off { opacity: .38; text-decoration: line-through; }
     flex: 1;
   }
 }
+
+/* === Centered dominant play === */
+#center-table {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  flex: 1;
+}
+.dominant-play {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+.dp-name {
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  font-weight: 600;
+}
+.dominant-play .play-cards .card {
+  width: clamp(56px, 7vw, 80px);
+  height: calc(clamp(56px, 7vw, 80px) * 1.4);
+  animation: cardDeal 0.4s ease-out;
+}
+
+/* Pass indicators at table edges */
+.pass-spot {
+  position: absolute;
+  font-size: 28px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 2px 2px 0 #8b0000, 0 0 16px rgba(255,215,0,0.4);
+  letter-spacing: 4px;
+  z-index: 1;
+}
+.pp-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); }
+.pp-top { top: 12px; left: 50%; transform: translateX(-50%); }
+.pp-left { left: 16px; top: 50%; transform: translateY(-50%); }
+.pp-right { right: 16px; top: 50%; transform: translateY(-50%); }
+
+/* Desktop: side panels compact, table fills space */
+@media (min-width: 721px) {
+  #opp-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .opp-zone.seat-side {
+    flex: 0 0 180px;
+  }
+  #table-mid {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  #center-table { min-height: 200px; }
+  .pass-spot { font-size: 22px; }
+  .dominant-play .play-cards .card {
+    width: clamp(44px, 11vw, 60px);
+    height: calc(clamp(44px, 11vw, 60px) * 1.4);
+  }
+}
