@@ -163,7 +163,20 @@ function checkRoomCreationRate(ip: string): boolean {
   return true;
 }
 
+// Allowed origins for WebSocket connections (CSRF protection)
+const ALLOWED_ORIGINS = new Set([
+  'https://gandengyan.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+]);
+
 wss.on('connection', (ws: WebSocket, req) => {
+  // Fix: Validate Origin header to prevent cross-site WebSocket hijacking
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    ws.close(1008, 'Origin not allowed');
+    return;
+  }
   (ws as unknown as { isAlive: boolean }).isAlive = true;
 
   ws.on('pong', () => {

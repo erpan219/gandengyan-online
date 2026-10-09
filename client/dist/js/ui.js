@@ -433,7 +433,7 @@ function clearJoinTimer() {
 function joinRoom() {
   if (!netAvailable()) { toast(t('e_net')); return; }
   const code = $('#inp-code').value.trim().toUpperCase();
-  if (code.length !== 4) { toast(t('e_room404')); return; }
+  if (code.length !== 6) { toast(t('e_room404')); return; }
   App.name = myName();
   App.role = 'online';
   App.code = code;

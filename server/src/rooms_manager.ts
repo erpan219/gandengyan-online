@@ -1,4 +1,5 @@
 import { Room, Seat } from './rooms.js';
+import { randomBytes } from 'node:crypto';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -6,12 +7,12 @@ export class RoomManager {
   private rooms = new Map<string, Room>();
 
   private makeCode(): string {
+    // Fix: 6-char codes with crypto RNG (was 4 chars with Math.random)
+    // 31^6 = 887M combinations vs 31^4 = 923K
     let code = '';
     do {
-      code = Array.from(
-        { length: 4 },
-        () => CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length))
-      ).join('');
+      const bytes = randomBytes(6);
+      code = Array.from(bytes, (b) => CODE_CHARS.charAt(b % CODE_CHARS.length)).join('');
     } while (this.rooms.has(code));
     return code;
   }
