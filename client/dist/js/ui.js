@@ -11,6 +11,14 @@ function avatarForName(name) {
   const map = {'Uncle Wang':'👨','Auntie Li':'👩','Spicy Noodle':'🍜','Lucky Cat':'🐱','Dumpling Dragon':'🐉','Auntie Mei':'👵','Uncle Chen':'🧔','Panda Bingo':'🐼','Hotpot Hero':'🍲','Grandma Zhao':'👵','Uncle Fu':'👴','Little Bao':'🥟','Tea Egg Tiger':'🐯','Auntie Hua':'🌸','Noodle Ninja':'🥷','Sesame Bunny':'🐰','Uncle Long':'🐲','Mooncake Moose':'🦌','Auntie Jin':'✨','Wonton Wizard':'🧙'};
   return map[name] || '🎴';
 }
+// Animation keying: only animate when a NEW play lands, not on re-render.
+// Each trick gets a fingerprint; animation plays only when fingerprint changes.
+let _lastPlayFingerprint = null;
+function playFingerprint(trickSeat, combo) {
+  if (trickSeat == null || !combo || !combo.cards) return null;
+  return trickSeat + ':' + combo.cards.map(c => c.id || (c.r + c.s)).sort().join(',');
+}
+
 
 
 'use strict';
@@ -540,6 +548,11 @@ function midHTML(v) {
   // matching their seat. Only the dominant (winning) play is visible.
   const sides = seatSides(v);
   const trickSeat = v.trick ? v.trick.seat : null;
+  // Animation keying: only animate NEW plays, re-renders stay still
+  const fp = playFingerprint(trickSeat, v.trick ? v.trick.combo : null);
+  const isNewPlay = fp && fp !== _lastPlayFingerprint;
+  if (isNewPlay) _lastPlayFingerprint = fp;
+  if (!v.trick || !v.trick.combo) _lastPlayFingerprint = null;
   let html = '<div id="center-table">';
 
   // Helper: render cards or pass at a table position
@@ -552,7 +565,8 @@ function midHTML(v) {
     if (seat === trickSeat && v.trick.combo && v.trick.combo.cards && v.trick.combo.cards.length) {
       const cards = v.trick.combo.cards.slice().sort((a, b) => b.r - a.r);
       const isBomb = v.trick.combo.kind && (v.trick.combo.kind.includes('BOMB') || v.trick.combo.kind === 'ROCKET');
-      inner = '<div class="table-cards' + (isBomb ? ' bomb-play' : '') + '">' +
+      const animCls = isNewPlay ? '' : ' no-anim';
+      inner = '<div class="table-cards' + (isBomb ? ' bomb-play' : '') + animCls + '">' +
               cards.map(c => cardHTML(c, '', v.laizi)).join('') + '</div>';
     } else if (lp && lp.pass) {
       inner = '<div class="table-pass">\u4e0d\u51fa</div>';

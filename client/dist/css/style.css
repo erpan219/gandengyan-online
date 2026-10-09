@@ -724,3 +724,12 @@ button.off { opacity: .38; text-decoration: line-through; }
   .avatar { width: 40px; height: 40px; font-size: 26px; }
   .pname { font-size: 13px; }
 }
+
+/* Suppress animation on re-render (cards stay still) */
+.table-cards.no-anim,
+.table-cards.no-anim .card {
+  animation: none !important;
+}
+.table-pass {
+  animation: passIn 0.25s ease-out;
+}
