@@ -80,7 +80,7 @@ export class Room {
       name,
       isBot: false,
       token: token || this.makeToken(),
-      ready: false,
+      ready: true, // Auto-ready on join
       ws: null,
       connected: true,
       lastSeen: Date.now(),
