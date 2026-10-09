@@ -848,3 +848,176 @@ button.off { opacity: .38; text-decoration: line-through; }
   from { transform: scale(1); }
   to { transform: scale(1.1); }
 }
+
+/* ============ Game Feel Improvements (2026-10-09) ============ */
+
+/* 1. Golden Turn Aura - glowing ring on active player */
+.opp.turn {
+  position: relative;
+}
+.opp.turn::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 12px;
+  border: 2px solid #f5c04e;
+  box-shadow: 0 0 16px rgba(245, 192, 78, 0.6), inset 0 0 8px rgba(245, 192, 78, 0.2);
+  animation: turnAura 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes turnAura {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* 2. Play Burst - combo name popup */
+.combo-burst {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%) scale(0.5);
+  font-size: 28px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 2px 4px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+.combo-burst.show {
+  animation: comboBurst 1.2s ease-out forwards;
+}
+@keyframes comboBurst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  40% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+/* 3. Thinking dots for opponents */
+.thinking-dots {
+  display: inline-block;
+  margin-left: 4px;
+}
+.thinking-dots span {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f5c04e;
+  margin: 0 1px;
+  animation: thinkDot 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes thinkDot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* 4. Card count badge - gold ring style */
+.card-count-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f5c04e, #d4a017);
+  color: #3a2200;
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* 5. Enhanced card selection - lift with gold glow */
+#my-hand .card.sel {
+  transform: translateY(-14px) scale(1.05);
+  box-shadow: 0 0 12px rgba(245, 192, 78, 0.7), 0 6px 12px rgba(0,0,0,0.4);
+  border-color: #f5c04e;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+#my-hand .card {
+  transition: transform 0.15s ease-out;
+  cursor: pointer;
+}
+#my-hand .card:active {
+  transform: translateY(-6px);
+}
+
+/* 6. Invalid shake */
+@keyframes invalidShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.shake {
+  animation: invalidShake 0.3s ease-out;
+}
+
+/* 7. Turn glow for player's hand area */
+#my-hand.turn-glow {
+  position: relative;
+}
+#my-hand.turn-glow::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 16px;
+  border: 2px solid rgba(245, 192, 78, 0.5);
+  animation: turnAura 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 8. Celebration confetti */
+.confetti-piece {
+  position: fixed;
+  width: 8px;
+  height: 12px;
+  top: -20px;
+  z-index: 1000;
+  pointer-events: none;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  to { transform: translateY(110vh) rotate(720deg); }
+}
+
+/* 9. Played card landing pop */
+@keyframes cardLand {
+  0% { transform: scale(1.3); opacity: 0.7; }
+  60% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.play-land {
+  animation: cardLand 0.25s ease-out;
+}
+
+/* 10. Score popup */
+.score-popup {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  font-size: 36px;
+  font-weight: 900;
+  color: #ffd700;
+  text-shadow: 0 0 24px rgba(255, 215, 0, 0.9);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+.score-popup.show {
+  animation: scorePop 1.5s ease-out forwards;
+}
+@keyframes scorePop {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  30% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+  60% { transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+}

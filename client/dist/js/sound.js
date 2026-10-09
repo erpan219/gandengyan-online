@@ -93,5 +93,17 @@ const Snd = (() => {
     win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, { dur: 0.18, gain: 0.2, delay: i * 0.12 })); },
     lose() { [392, 330, 262].forEach((f, i) => tone(f, { type: 'triangle', dur: 0.24, gain: 0.16, delay: i * 0.15 })); },
     chat() { tone(1200, { dur: 0.06, gain: 0.1 }); tone(1500, { dur: 0.08, gain: 0.08, delay: 0.05 }); },
+    /* New: card select lift - bright blip with upward pitch */
+    select() { tone(800, { type: 'triangle', dur: 0.05, gain: 0.08, slide: 300 }); },
+    /* New: invalid move - low corrective buzz */
+    invalid() { tone(180, { type: 'square', dur: 0.12, gain: 0.08 }); tone(150, { type: 'square', dur: 0.1, gain: 0.06, delay: 0.08 }); },
+    /* New: combo accent - rising arpeggio sparkle for strong plays */
+    combo() {
+      [660, 830, 990, 1320].forEach((f, i) => tone(f, { type: 'triangle', dur: 0.1, gain: 0.12, delay: i * 0.06 }));
+    },
+    /* New: shuffle tick - rapid paper clicks */
+    shuffle() { for (let i = 0; i < 8; i++) noise({ dur: 0.03, gain: 0.08, delay: i * 0.04 }); },
+    /* New: countdown warning - urgent tick */
+    warn() { tone(1100, { type: 'square', dur: 0.05, gain: 0.08 }); },
   };
 })();

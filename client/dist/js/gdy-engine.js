@@ -224,7 +224,6 @@ function gdyBotPlay(handIds, target, playerCount, oppCounts) {
   if (!plays.length) return null;
 
   // === Heuristic 1: Hand evaluation ===
-  // Score: bombs (+50 each tier), high cards (3/2/BJ/SJ), penalize singletons
   const rankCount = {};
   for (const id of handIds) {
     const r = gdyCardRank(id);
@@ -233,10 +232,22 @@ function gdyBotPlay(handIds, target, playerCount, oppCounts) {
   const isBombRank = (r) => (rankCount[r] || 0) >= 3 && r !== 'SJ' && r !== 'BJ';
   const highRanks = ['3', '2', 'SJ', 'BJ'];
 
+  // === NEW: Adaptive Hand Role Evaluation ===
+  // Classify hand as sprinter (can finish fast), controller (has bombs/high cards),
+  // or spoiler (disrupt opponents). Updates strategy accordingly.
+  const bombCount = Object.keys(rankCount).filter(r => isBombRank(r)).length;
+  const highCardCount = handIds.filter(id => highRanks.includes(gdyCardRank(id))).length;
+  const singletonCount = Object.values(rankCount).filter(c => c === 1).length;
+  const handSize = handIds.length;
+
+  let handRole = 'spoiler'; // default: disrupt
+  if (handSize <= 8 && singletonCount <= 2) handRole = 'sprinter'; // can finish fast
+  else if (bombCount >= 1 || highCardCount >= 4) handRole = 'controller'; // has power
+
   // === Heuristic: Opponent threat detection ===
-  // If any opponent has <= 2 cards, they might win next turn - play aggressively
   const oppThreat = oppCounts.some(c => c <= 2);
   const oppCloseToWin = oppCounts.some(c => c <= 4);
+  const minOppCards = oppCounts.length ? Math.min(...oppCounts) : 99;
 
   // Filter: don't break bombs for ordinary plays (unless desperate)
   const preservesBombs = (play) => {
@@ -249,25 +260,51 @@ function gdyBotPlay(handIds, target, playerCount, oppCounts) {
   const smart = plays.filter(preservesBombs);
   const pool = smart.length ? smart : plays;
 
-  // === Heuristic 2: Lead strategy ===
+  // === Heuristic 2: Lead strategy (enhanced with probe planning & role) ===
   if (!target) {
     const noBombLead = pool.filter(p => gdyBombTier(p.kind) === 0);
     const leadPool = noBombLead.length ? noBombLead : pool;
 
-    // Score each lead: prefer dumping cards, preserve high finishers
     const scored = leadPool.map(p => {
-      let score = p.cardCount * 10;  // More cards = better
-      // Bonus for leading from pairs/straights (efficient)
+      let score = p.cardCount * 10;
       if (p.kind === 'PAIR' || p.kind === 'PAIR_RUN') score += 5;
       if (p.kind === 'STRAIGHT') score += 8;
-      // Penalty for leading high cards early (save finishers)
       if (p.strength > 10) score -= (p.strength - 10) * 2;
-      // Human-like unpredictability: small random factor
-      score += Math.random() * 3;
+
+      // NEW: Lead Shaping - probe with small singles to find stoppers
+      if (p.kind === 'SINGLE' && p.strength <= 6) {
+        score += 6; // Probe: cheap info about opponent strength
+      }
+      // NEW: Avoid giving next player easy tempo unless we can regain control
+      if (handRole === 'controller' && p.strength < 8 && p.cardCount === 1) {
+        score -= 4; // Controller prefers keeping initiative with stronger leads
+      }
+      // NEW: Sprinter plays fastest - prioritize max cards dumped
+      if (handRole === 'sprinter') {
+        score += p.cardCount * 5; // Extra bonus for dumping
+        if (p.strength > 10) score += 10; // Sprinter uses high cards to finish
+      }
+      // NEW: Spoiler disrupts - prefer plays that force responses
+      if (handRole === 'spoiler' && p.kind === 'SINGLE' && p.strength >= 8 && p.strength <= 11) {
+        score += 5; // Mid-high singles force opponents to spend
+      }
+
+      // Humanlike variance: larger random factor for less predictability
+      score += Math.random() * 5;
       return { play: p, score };
     });
     scored.sort((a, b) => b.score - a.score);
 
+    // NEW: Endgame Line Search - check if we can force a win in 2 moves
+    if (handIds.length <= 8) {
+      for (const s of scored.slice(0, 3)) {
+        const remaining = handIds.length - s.play.cardCount;
+        if (remaining <= 3) {
+          // Likely can finish next turn - prioritize
+          return s.play.cardIds;
+        }
+      }
+    }
     // Endgame: if we can go out, do it
     if (handIds.length <= 6) {
       const finisher = scored.find(s => s.play.cardCount >= handIds.length - 2);
@@ -280,42 +317,76 @@ function gdyBotPlay(handIds, target, playerCount, oppCounts) {
   const nonBombs = pool.filter(p => gdyBombTier(p.kind) === 0);
 
   if (nonBombs.length) {
-    // Score each response: cheap wins good, expensive wins bad
     const scored = nonBombs.map(p => {
-      let score = 100 - p.strength;  // Lower strength = cheaper = better
-      // Bonus: removes a weak/single card from hand
+      let score = 100 - p.strength;
       if (p.cardCount === 1 && p.strength < 8) score += 10;
-      // Penalty: using a high card (J+) to beat a low play is wasteful
       if (target.strength < 6 && p.strength >= 8) score -= 45;
-      // If opponent threatens to win, be more willing to beat
       if (oppThreat) score += 15;
-      // Human-like: slight randomization
-      score += Math.random() * 5;
+
+      // NEW: Threat-Aware Response Costing - evaluate future tempo
+      // If opponent is close to winning, deny them the exact card type they need
+      if (minOppCards <= 3) {
+        // Opponent likely needs a specific play to win - overplay to block
+        score += 20;
+        // Prefer using mid-strength cards to block (save highest for later)
+        if (p.strength >= 8 && p.strength <= 11) score += 8;
+      }
+      // NEW: Role-based response
+      if (handRole === 'sprinter' && p.cardCount > 1) {
+        score += 12; // Sprinter dumps multiple cards when possible
+      }
+      if (handRole === 'controller' && p.strength > 12) {
+        score -= 15; // Controller saves top cards for decisive moments
+      }
+      // NEW: Don't waste high cards on low-value tricks when safe
+      const trickValue = target.strength;
+      if (!oppThreat && !oppCloseToWin && trickValue < 7 && p.strength > 10) {
+        score -= 25; // Preserve high cards for meaningful tricks
+      }
+
+      // Humanlike variance
+      score += Math.random() * 7;
       return { play: p, score };
     });
     scored.sort((a, b) => b.score - a.score);
 
-    // Pass if best option is still bad (unless opponent threatens)
     if (!oppThreat && scored[0].score < 70) return null;
     return scored[0].play.cardIds;
   }
 
-  // === Heuristic 4: Bomb management ===
+  // === Heuristic 4: Bomb management (contextual valuation) ===
   const bombs = pool.filter(p => gdyBombTier(p.kind) > 0);
   if (bombs.length) {
     const targetIsBomb = target && gdyBombTier(target.kind) > 0;
-    // Use bomb if: opponent about to win, target is bomb, or endgame
-    const shouldBomb = oppThreat || targetIsBomb || handIds.length <= 5;
-    // Also bomb if it lets us win immediately
     const winWithBomb = bombs.some(b => {
       const remaining = handIds.length - b.cardIds.length;
       return remaining === 0;
     });
 
-    if (shouldBomb || winWithBomb || oppCloseToWin) {
+    // NEW: Contextual Bomb Valuation - only bomb when it creates decisive value
+    let bombValue = 0;
+    let bombReason = '';
+    if (oppThreat) { bombValue += 50; bombReason = 'block_win'; }
+    else if (targetIsBomb) { bombValue += 30; bombReason = 'bomb_war'; }
+    else if (winWithBomb) { bombValue += 60; bombReason = 'instant_win'; }
+    else if (handIds.length <= 5) { bombValue += 25; bombReason = 'endgame'; }
+    else if (oppCloseToWin && minOppCards <= 4) { bombValue += 20; bombReason = 'threat'; }
+    // NEW: Don't bomb low-value tricks - save for better leverage
+    if (!oppThreat && target && target.strength < 8 && gdyBombTier(target.kind) === 0) {
+      bombValue -= 30; // Low-value trick, better to save bomb
+    }
+    // NEW: Controller role values bombs more highly
+    if (handRole === 'controller') bombValue += 10;
+
+    const shouldBomb = bombValue >= 25 || winWithBomb;
+
+    if (shouldBomb) {
       bombs.sort((a, b) => gdyBombTier(a.kind) - gdyBombTier(b.kind) || a.strength - b.strength);
-      // Human-like: don't always use smallest bomb when desperate
-      const idx = oppThreat && bombs.length > 1 ? 0 : 0;
+      // NEW: Humanlike deception - occasionally use bigger bomb to bluff strength
+      let idx = 0;
+      if (bombs.length > 1 && Math.random() < 0.15 && bombReason === 'block_win') {
+        idx = 1; // 15% chance to overplay when blocking (unpredictable)
+      }
       return bombs[idx].cardIds;
     }
   }

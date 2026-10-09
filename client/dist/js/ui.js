@@ -493,7 +493,16 @@ function act(kind, data) {
     return;
   }
   if (kind === 'chat' && App.role === 'local') { showBubble(0, t('chat')[data.id] || ''); return; }
-  dispatchAct(0, kind, data, () => toast(t('e_invalid')));
+  dispatchAct(0, kind, data, () => {
+    toast(t('e_invalid'));
+    Snd.invalid();
+    const actions = $('#actions');
+    if (actions) {
+      actions.classList.remove('shake');
+      void actions.offsetWidth; // restart animation
+      actions.classList.add('shake');
+    }
+  });
 }
 
 /* ---------------- game rendering ---------------- */
@@ -694,6 +703,49 @@ function statusHTML(v) {
   return `<span class="status">${t('thinking', esc(nm))}</span>`;
 }
 
+
+/* ============ Game Feel Effects ============ */
+function showComboBurst(text) {
+  const table = $('#table-mid') || $('#table');
+  if (!table) return;
+  const el = document.createElement('div');
+  el.className = 'combo-burst';
+  el.textContent = text;
+  table.style.position = 'relative';
+  table.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => el.remove(), 1300);
+}
+
+function showScorePopup(text) {
+  const table = $('#table') || document.body;
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = text;
+  table.style.position = 'relative';
+  table.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => el.remove(), 1600);
+}
+
+function celebrate() {
+  const colors = ['#f5c04e', '#ffd700', '#ff6b6b', '#ff8c42', '#fff'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.animationDuration = (2 + Math.random() * 2) + 's';
+    p.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 4500);
+  }
+}
+
+function thinkingDotsHTML() {
+  return '<span class="thinking-dots"><span></span><span></span><span></span></span>';
+}
+
 /* Sound effects are driven by diffing consecutive views, so they fire
    identically for local play, host and guest. */
 function sndSig(v) {
@@ -723,8 +775,10 @@ function playSounds(v) {
     if (cur.plays[i] === prev.plays[i] || cur.plays[i] === '') continue;
     if (cur.plays[i] === 'P') { Snd.pass(); continue; }
     const c = v.players[i].lastPlay.combo;
-    if (c && c.type === 'rocket') Snd.rocket();
-    else if (c && c.type === 'bomb') Snd.bomb();
+    if (c && c.type === 'rocket') { Snd.rocket(); showComboBurst('🚀 ' + t('rocket')); Snd.combo(); }
+    else if (c && c.type === 'bomb') { Snd.bomb(); showComboBurst('💣 ' + t('bomb')); Snd.combo(); }
+    else if (c && c.type === 'straight') { Snd.play(); showComboBurst(t('straight')); }
+    else if (c && c.type === 'pair_run') { Snd.play(); showComboBurst(t('pair_run')); }
     else Snd.play();
   }
   if (cur.bids !== prev.bids) Snd.bid();
@@ -732,7 +786,7 @@ function playSounds(v) {
   if (v.state === 'settle' && prev.state !== 'settle' && v.result) {
     const r = v.result;
     const iWon = r.landlordWon ? v.mySeat === v.landlord : v.mySeat !== v.landlord;
-    if (iWon) Snd.win(); else Snd.lose();
+    if (iWon) { Snd.win(); celebrate(); showScorePopup('🎉 ' + t('you_win')); } else Snd.lose();
     return;
   }
   if (v.state === 'playing' && cur.actor === v.mySeat && prev.actor !== v.mySeat) Snd.turn();
@@ -988,8 +1042,7 @@ function bindHandDrag() {
     return c ? c.dataset.id : null;
   };
   const applySel = (id, on) => {
-    if (on) App.selected.add(id); else App.selected.delete(id);
-    Snd.tick();
+    if (on) { App.selected.add(id); Snd.select(); } else { App.selected.delete(id); Snd.tick(); }
     renderGame();
   };
   handEl.addEventListener('pointerdown', e => {
