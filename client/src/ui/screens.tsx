@@ -36,30 +36,70 @@ export function RulesScreen({ lang, onBack }: { lang: 'zh' | 'en'; onBack: () =>
   const zh = lang === 'zh';
   return (
     <div className="gdy-screen gdy-rules">
-      <h2>{t.rules}</h2>
+      <h2>📖 {t.rules}</h2>
       <div className="gdy-rules-body">
         {zh ? (
-          <ul>
-            <li>3人局每人18张，4人局14/14/13/13，共54张牌。</li>
-            <li>单牌从小到大：4 &lt; 5 &lt; … &lt; K &lt; A &lt; 2 &lt; 3 &lt; 小王 &lt; 大王。</li>
-            <li>双王是最高的「火箭」；四张是四炸，三张是三炸。炸弹大于普通牌型：火箭 &gt; 四炸 &gt; 三炸。</li>
-            <li>顺子只用4～A：3人局至少4张，4人局至少3张；连对至少两连对。</li>
-            <li>没有三带、飞机、 full house 等其他牌型。</li>
-            <li>首局持♠4者先出（首手可不出♠4）；之后由上一局第一名先出。</li>
-            <li>回应时可过牌（即使能大过）；自由领出时不能过。</li>
-            <li>第一个出完的人获胜，其余人继续比赛决出所有名次。</li>
-          </ul>
+          <>
+            <h3>🃏 基本规则</h3>
+            <ul>
+              <li>3人局每人18张，4人局14/14/13/13，共54张牌。</li>
+              <li>单牌从小到大：4 &lt; 5 &lt; … &lt; K &lt; A &lt; 2 &lt; 3 &lt; 小王 &lt; 大王。</li>
+              <li>首局持♠4者先出（首手可不出♠4）；之后由上一局第一名先出。</li>
+            </ul>
+            <h3>💣 炸弹</h3>
+            <ul>
+              <li>双王是最高的「🚀火箭」；四张是四炸，三张是三炸。</li>
+              <li>炸弹大于普通牌型：火箭 &gt; 四炸 &gt; 三炸 &gt; 普通牌。</li>
+              <li>不洗牌模式下炸弹满天飞！</li>
+            </ul>
+            <h3>📏 牌型</h3>
+            <ul>
+              <li>顺子只用4～A：3人局至少4张，4人局至少3张；连对至少两连对。</li>
+              <li>没有三带、飞机、full house等其他牌型。</li>
+            </ul>
+            <h3>🎮 玩法</h3>
+            <ul>
+              <li>回应时可过牌（即使能大过）；自由领出时不能过。</li>
+              <li>第一个出完的人获胜，其余人继续比赛决出所有名次。</li>
+              <li>🤖 掉线后AI立即接管；重连可夺回控制权。</li>
+            </ul>
+            <h3>🏆 计分</h3>
+            <ul>
+              <li>按名次计分，多局累计：第一名3分、第二名2分、第三名1分。</li>
+              <li>炸弹奖励：每打出一个炸弹+1分，火箭+2分。</li>
+            </ul>
+          </>
         ) : (
-          <ul>
-            <li>3 players get 18 cards each; 4 players get 14/14/13/13. 54 cards total.</li>
-            <li>Single rank order: 4 &lt; 5 &lt; … &lt; K &lt; A &lt; 2 &lt; 3 &lt; SJ &lt; BJ.</li>
-            <li>Both Jokers = ROCKET (highest). Four of a kind = four-bomb, three = triple-bomb. Bombs beat ordinary hands: rocket &gt; four &gt; triple.</li>
-            <li>Straights use only 4–A: min 4 cards (3P) / 3 cards (4P). Pair runs need ≥2 consecutive pairs.</li>
-            <li>No kickers, full houses, or airplanes.</li>
-            <li>First hand: holder of ♠4 leads (need not include it). Later hands: previous winner leads.</li>
-            <li>You may pass a response even if you can beat it; no passing on a free lead.</li>
-            <li>First finisher wins; the rest keep playing for all placements.</li>
-          </ul>
+          <>
+            <h3>🃏 Basics</h3>
+            <ul>
+              <li>3 players get 18 cards each; 4 players get 14/14/13/13. 54 cards total.</li>
+              <li>Single rank order: 4 &lt; 5 &lt; … &lt; K &lt; A &lt; 2 &lt; 3 &lt; SJ &lt; BJ.</li>
+              <li>First hand: holder of ♠4 leads (need not include it). Later: previous winner leads.</li>
+            </ul>
+            <h3>💣 Bombs</h3>
+            <ul>
+              <li>Both Jokers = 🚀ROCKET (highest). Four of a kind = four-bomb, three = triple-bomb.</li>
+              <li>Bombs beat ordinary hands: rocket &gt; four &gt; triple &gt; ordinary.</li>
+              <li>No-shuffle mode: bombs everywhere!</li>
+            </ul>
+            <h3>📏 Combinations</h3>
+            <ul>
+              <li>Straights use only 4–A: min 4 cards (3P) / 3 cards (4P). Pair runs need ≥2 consecutive pairs.</li>
+              <li>No kickers, full houses, or airplanes.</li>
+            </ul>
+            <h3>🎮 Play</h3>
+            <ul>
+              <li>You may pass a response even if you can beat it; no passing on a free lead.</li>
+              <li>First finisher wins; the rest keep playing for all placements.</li>
+              <li>🤖 AI takes over instantly on disconnect; reconnect to reclaim.</li>
+            </ul>
+            <h3>🏆 Scoring</h3>
+            <ul>
+              <li>Points by place, cumulative across hands: 1st=3, 2nd=2, 3rd=1.</li>
+              <li>Bomb bonus: +1 per bomb, +2 for rocket.</li>
+            </ul>
+          </>
         )}
       </div>
       <button className="gdy-bigbtn ghost" onClick={onBack}>

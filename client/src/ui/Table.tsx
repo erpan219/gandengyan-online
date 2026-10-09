@@ -42,7 +42,7 @@ export function Table({ view, lang, botNames }: Props) {
         {view.lastPlay ? (
           <>
             <div className="gdy-lastplay-label">{t.lastPlay}</div>
-            <div className="gdy-lastplay">
+            <div className={`gdy-lastplay${['ROCKET', 'FOUR_BOMB', 'TRIPLE_BOMB'].includes(view.lastPlay.combination.kind) ? ' bomb' : ''}`}>
               {view.lastPlay.combination.cardIds.map((id) => (
                 <CardView key={id} id={id} small />
               ))}
