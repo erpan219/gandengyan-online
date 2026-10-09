@@ -40,6 +40,7 @@ type Strings = {
   notReady: string;
   startGame: string;
   waitingHost: string;
+  points: string;
   fillBots: string;
   noShuffle: string;
   noShuffleDesc: string;
@@ -94,6 +95,7 @@ export const STRINGS: Record<'zh' | 'en', Strings> = {
     notReady: '取消准备',
     startGame: '开始游戏',
     waitingHost: '等待房主开始…',
+    points: '分',
     fillBots: '空位由机器人补齐',
     noShuffle: '不洗牌',
     noShuffleDesc: '炸弹满天飞',
@@ -146,6 +148,7 @@ export const STRINGS: Record<'zh' | 'en', Strings> = {
     notReady: 'Unready',
     startGame: 'Start Game',
     waitingHost: 'Waiting for host…',
+    points: ' pts',
     fillBots: 'Fill empty seats with bots',
     noShuffle: 'No-shuffle',
     noShuffleDesc: 'bombs everywhere',
