@@ -850,7 +850,7 @@ function onTurnTimeout(seq) {
   App.autoPlay = true;
   toast(t('autoplay_on'));
   renderGame();
-  setTimeout(() => autoPlayMove(seq), 800);
+  setTimeout(() => autoPlayMove(seq), 2000); // 2s delay so user can cancel
 }
 
 function autoPlayMove(seq) {
@@ -923,7 +923,7 @@ function renderGame() {
     if (App.autoPlay) {
       clearTurnTimer();
       const seq = App.turnSeq;
-      setTimeout(() => autoPlayMove(seq), 600);
+      setTimeout(() => autoPlayMove(seq), 2000); // 2s delay so user can cancel
     } else if (!App.turnTimer) {
       startTurnTimer();
     }

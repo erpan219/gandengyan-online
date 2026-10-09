@@ -805,10 +805,11 @@ button.off { opacity: .38; text-decoration: line-through; }
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 10px;
-  background: rgba(255, 193, 7, 0.12);
-  border: 1px solid rgba(255, 193, 7, 0.4);
+  padding: 14px;
+  background: rgba(255, 193, 7, 0.15);
+  border: 2px solid #f5c04e;
   border-radius: 12px;
+  animation: autoplayPulse 1.5s ease-in-out infinite;
   animation: autoplayPulse 1.5s infinite;
 }
 .autoplay-label {
@@ -940,6 +941,10 @@ button.off { opacity: .38; text-decoration: line-through; }
   border-color: #f5c04e;
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
+/* Fix: unselected cards must return to hand - override stuck hover on touch */
+#my-hand .card:not(.sel) {
+  transform: translateY(0) scale(1);
+}
 #my-hand .card {
   transition: transform 0.15s ease-out;
   cursor: pointer;
@@ -1020,4 +1025,15 @@ button.off { opacity: .38; text-decoration: line-through; }
   30% { opacity: 1; transform: translateX(-50%) scale(1.2); }
   60% { transform: translateX(-50%) scale(1); }
   100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+}
+
+.autoplay-bar .act-btn {
+  min-height: 52px;
+  min-width: 160px;
+  font-size: 18px;
+  font-weight: 800;
+}
+@keyframes autoplayPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 192, 78, 0.4); }
+  50% { box-shadow: 0 0 24px rgba(245, 192, 78, 0.9); }
 }
