@@ -491,7 +491,7 @@ button.off { opacity: .38; text-decoration: line-through; }
     radial-gradient(ellipse at 50% 40%, rgba(255,215,0,0.06) 0%, transparent 60%),
     radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 70%),
     linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
-  border: 2px solid rgba(255,215,0,0.25);
+  border: 1px solid rgba(0,0,0,0.3);
   border-radius: 20px;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
 }
@@ -914,8 +914,7 @@ button.off { opacity: .38; text-decoration: line-through; }
     radial-gradient(ellipse at 50% 35%, rgba(255, 201, 60, 0.12) 0%, transparent 55%),
     radial-gradient(ellipse at center, rgba(215, 38, 61, 0.08) 0%, transparent 70%),
     linear-gradient(160deg, #3D0F1A 0%, #260A0F 50%, #1A060A 100%);
-  border: 3px solid transparent;
-  border-image: linear-gradient(135deg, #E9B44C, #8B6914, #E9B44C) 1;
+  border: none;
   border-radius: 24px;
   box-shadow:
     inset 0 0 80px rgba(0, 0, 0, 0.6),
@@ -988,5 +987,30 @@ body[data-players="3"] .ts-right {
   body[data-players="3"] .ts-left,
   body[data-players="3"] .ts-right {
     top: 62%;
+  }
+}
+
+/* 3-player: bigger table, compact side panels */
+body[data-players="3"] #opp-left,
+body[data-players="3"] #opp-right {
+  flex: 0 0 56px !important;
+}
+body[data-players="3"] #table-mid {
+  flex: 1 !important;
+}
+@media (max-width: 720px) {
+  body[data-players="3"] #opp-left,
+  body[data-players="3"] #opp-right {
+    flex: 0 0 52px !important;
+  }
+  body[data-players="3"] #opp-left .pname,
+  body[data-players="3"] #opp-right .pname {
+    display: none;
+  }
+  body[data-players="3"] #opp-left .avatar,
+  body[data-players="3"] #opp-right .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
   }
 }
