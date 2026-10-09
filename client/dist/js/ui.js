@@ -723,6 +723,8 @@ function playSounds(v) {
 function renderGame() {
   const v = App.view;
   if (!v) return;
+  // Player-count class for positional styling (3P: opponents sit lower)
+  document.body.dataset.players = v.n || 0;
   playSounds(v);
   // prune stale selection
   const handIds = new Set(v.myHand.map(c => c.id));

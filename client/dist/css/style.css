@@ -965,3 +965,30 @@ h1, h2, .game-title {
     0 0 30px rgba(255,201,60,0.3);
   letter-spacing: 4px;
 }
+
+/* === 3-player: opponents sit lower, across from you === */
+body[data-players="3"] #opp-row {
+  align-items: flex-end;
+}
+body[data-players="3"] .seat-side {
+  align-self: flex-end;
+  margin-bottom: 20px;
+}
+body[data-players="3"] #table-mid {
+  /* Table shifts up slightly to balance */
+  margin-bottom: 10px;
+}
+/* 3P table spots: left/right lower to match panels */
+body[data-players="3"] .ts-left,
+body[data-players="3"] .ts-right {
+  top: 65%;
+}
+@media (max-width: 720px) {
+  body[data-players="3"] .seat-side {
+    margin-bottom: 12px;
+  }
+  body[data-players="3"] .ts-left,
+  body[data-players="3"] .ts-right {
+    top: 62%;
+  }
+}
