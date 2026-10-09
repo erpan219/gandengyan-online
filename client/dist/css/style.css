@@ -316,13 +316,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   .mode-grid, .opt-grid, .big-btns { grid-template-columns: 1fr; }
 }
 
-/* Central play area - pro client style */
-#center-table {
-  position: relative;
-  flex: 1;
-  min-height: 280px;
-  display: block;
-}
+/* (removed old center-table, see Centered dominant play below) */
 .play-spot {
   position: absolute;
   display: flex;
@@ -470,10 +464,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   border: 3px solid #8b6914;
   box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
 }
-#center-table {
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, transparent 70%);
-  border: 2px solid rgba(255,215,0,0.2);
-}
+/* (merged into Centered dominant play below) */
 
 /* Avatar styling */
 .avatar {
