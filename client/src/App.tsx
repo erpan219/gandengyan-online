@@ -28,67 +28,83 @@ export default function App() {
 
   if (screen === 'mode') {
     return (
-      <ModeLobby
-        lang={lang}
-        onLang={setLang}
-        onSolo={() => setScreen('solo')}
-        onOnline={() => setScreen('online-lobby')}
-        onRules={() => setScreen('rules')}
-      />
+      <div className="gdy-app">
+        <ModeLobby
+          lang={lang}
+          onLang={setLang}
+          onSolo={() => setScreen('solo')}
+          onOnline={() => setScreen('online-lobby')}
+          onRules={() => setScreen('rules')}
+        />
+      </div>
     );
   }
   if (screen === 'rules') {
-    return <RulesScreen lang={lang} onBack={() => setScreen('mode')} />;
+    return (
+      <div className="gdy-app">
+        <RulesScreen lang={lang} onBack={() => setScreen('mode')} />
+      </div>
+    );
   }
   if (screen === 'solo') {
-    return <SoloGame lang={lang} onLang={setLang} onHome={() => setScreen('mode')} />;
+    return (
+      <div className="gdy-app">
+        <SoloGame lang={lang} onLang={setLang} onHome={() => setScreen('mode')} />
+      </div>
+    );
   }
   // online-lobby
   if (online.room) {
     if (online.game && (online.room.phase === 'PLAYING' || online.room.phase === 'RESULTS')) {
       return (
-        <OnlineGame
+        <div className="gdy-app">
+          <OnlineGame
+            lang={lang}
+            view={online.game.view}
+            seats={online.room.seats}
+            hostId={online.room.hostId}
+            chats={online.chats}
+            scores={online.game.scores ?? {}}
+            send={online.send}
+            onLeave={() => {
+              online.disconnect();
+              setScreen('mode');
+            }}
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="gdy-app">
+        <RoomView
           lang={lang}
-          view={online.game.view}
+          playerId={online.playerId ?? ''}
+          roomCode={online.room.roomCode}
+          playerCount={online.room.playerCount}
           seats={online.room.seats}
+          phase={online.room.phase}
           hostId={online.room.hostId}
-          chats={online.chats}
-          scores={online.game.scores ?? {}}
           send={online.send}
           onLeave={() => {
             online.disconnect();
             setScreen('mode');
           }}
         />
-      );
-    }
-    return (
-      <RoomView
+      </div>
+    );
+  }
+  return (
+    <div className="gdy-app">
+      <OnlineLobby
         lang={lang}
-        playerId={online.playerId ?? ''}
-        roomCode={online.room.roomCode}
-        playerCount={online.room.playerCount}
-        seats={online.room.seats}
-        phase={online.room.phase}
-        hostId={online.room.hostId}
         send={online.send}
-        onLeave={() => {
+        connected={online.connected}
+        onBack={() => {
           online.disconnect();
           setScreen('mode');
         }}
       />
-    );
-  }
-  return (
-    <OnlineLobby
-      lang={lang}
-      send={online.send}
-      connected={online.connected}
-      onBack={() => {
-        online.disconnect();
-        setScreen('mode');
-      }}
-    />
+    </div>
   );
 }
 
