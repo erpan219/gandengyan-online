@@ -222,25 +222,62 @@ function gdyBotPlay(handIds, target, playerCount) {
   const plays = gdyFindPlays(handIds, target, playerCount);
   if (!plays.length) return null;
 
-  // Prefer non-bomb, lowest strength
-  const nonBombs = plays.filter(p => gdyBombTier(p.kind) === 0);
-  const pool = nonBombs.length ? nonBombs : plays;
-  pool.sort((a, b) => {
-    const ta = gdyBombTier(a.kind), tb = gdyBombTier(b.kind);
-    if (ta !== tb) return ta - tb;
-    return a.strength - b.strength;
-  });
+  // Build rank counts to avoid breaking bombs
+  const rankCount = {};
+  for (const id of handIds) {
+    const r = gdyCardRank(id);
+    rankCount[r] = (rankCount[r] || 0) + 1;
+  }
+  const isBombRank = (r) => (rankCount[r] || 0) >= 3 && r !== 'SJ' && r !== 'BJ';
 
-  // Emergency: if hand is small (<=3 cards) and we have a bomb, use it
-  if (handIds.length <= 3) {
-    const bombs = plays.filter(p => gdyBombTier(p.kind) > 0);
-    if (bombs.length) {
+  // Filter out plays that break bombs (using bomb-rank cards for non-bomb plays)
+  const preservesBombs = (play) => {
+    if (gdyBombTier(play.kind) > 0) return true;
+    for (const id of play.cardIds) {
+      if (isBombRank(gdyCardRank(id))) return false;
+    }
+    return true;
+  };
+
+  const smart = plays.filter(preservesBombs);
+  const pool = smart.length ? smart : plays;
+
+  if (!target) {
+    // FREE LEAD: dump cards fast, but NEVER lead a bomb (wasteful).
+    const noBombLead = pool.filter(p => gdyBombTier(p.kind) === 0);
+    const leadPool = noBombLead.length ? noBombLead : pool;
+    const byLen = leadPool.slice().sort((a, b) => {
+      if (b.cardCount !== a.cardCount) return b.cardCount - a.cardCount;
+      return a.strength - b.strength;
+    });
+    const multi = byLen.filter(p => p.cardCount > 2);
+    if (multi.length) return multi[0].cardIds;
+    const pairs = byLen.filter(p => p.kind === 'PAIR');
+    if (pairs.length) return pairs[0].cardIds;
+    return byLen[0].cardIds;
+  }
+
+  // RESPONDING: lowest beating card, save bombs
+  const nonBombs = pool.filter(p => gdyBombTier(p.kind) === 0);
+  const canWin = nonBombs.length > 0;
+
+  if (canWin) {
+    // Play lowest non-bomb that beats
+    nonBombs.sort((a, b) => a.strength - b.strength || a.cardCount - b.cardCount);
+    return nonBombs[0].cardIds;
+  }
+
+  // Must bomb or pass. Bomb if: hand small (<=4), or target is a bomb (bomb war)
+  const bombs = pool.filter(p => gdyBombTier(p.kind) > 0);
+  if (bombs.length) {
+    const targetIsBomb = gdyBombTier(target.kind) > 0;
+    if (handIds.length <= 4 || targetIsBomb) {
       bombs.sort((a, b) => gdyBombTier(a.kind) - gdyBombTier(b.kind) || a.strength - b.strength);
       return bombs[0].cardIds;
     }
   }
 
-  return pool[0].cardIds;
+  return null; // pass
 }
 
 /* Hint: find a play for the player */
