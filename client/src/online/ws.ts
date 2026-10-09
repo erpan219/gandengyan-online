@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ClientMsg, ServerMsg } from './protocol';
 
+interface ChatMsg {
+  from: string;
+  fromName: string;
+  text: string;
+  ts: number;
+}
+
 interface WsState {
   connected: boolean;
   playerId: string | null;
   room: Extract<ServerMsg, { type: 'ROOM_STATE' }> | null;
   game: Extract<ServerMsg, { type: 'GAME_STATE' }> | null;
   error: string | null;
+  chats: ChatMsg[];
 }
 
 /** WebSocket client for the Gandengyan multiplayer server. */
@@ -18,6 +26,7 @@ export function useGameServer() {
     room: null,
     game: null,
     error: null,
+    chats: [],
   });
 
   const send = useCallback((msg: ClientMsg) => {
@@ -62,6 +71,12 @@ export function useGameServer() {
         case 'GAME_STATE':
           setState((s) => ({ ...s, game: msg, error: null }));
           break;
+        case 'CHAT_MSG':
+          setState((s) => ({
+            ...s,
+            chats: [...s.chats.slice(-19), { from: msg.from, fromName: msg.fromName, text: msg.text, ts: Date.now() }],
+          }));
+          break;
         case 'ERROR':
           setState((s) => ({ ...s, error: `${msg.code}: ${msg.message}` }));
           break;
@@ -79,7 +94,7 @@ export function useGameServer() {
   const disconnect = useCallback(() => {
     wsRef.current?.close();
     wsRef.current = null;
-    setState({ connected: false, playerId: null, room: null, game: null, error: null });
+    setState({ connected: false, playerId: null, room: null, game: null, error: null, chats: [] });
   }, []);
 
   useEffect(() => () => wsRef.current?.close(), []);

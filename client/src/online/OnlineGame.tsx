@@ -2,14 +2,24 @@ import { useState } from 'react';
 import { STRINGS } from '../i18n/strings';
 import { Table } from '../ui/Table';
 import { Hand } from '../ui/Hand';
+import { QuickChat } from './QuickChat';
 import type { PlayerView, CardId } from '../../../shared/types';
 import type { ClientMsg, SeatInfo } from './protocol';
+
+interface ChatMsg {
+  from: string;
+  fromName: string;
+  text: string;
+  ts: number;
+}
 
 export function OnlineGame(props: {
   lang: 'zh' | 'en';
   view: PlayerView;
   seats: SeatInfo[];
   hostId: string;
+  chats: ChatMsg[];
+  scores: Record<string, number>;
   send: (msg: ClientMsg) => void;
   onLeave: () => void;
 }): JSX.Element {
@@ -60,6 +70,7 @@ export function OnlineGame(props: {
             <li key={id} className={id === props.view.selfId ? 'me' : ''}>
               <span>{t.placeN(i + 1)}</span>
               <span>{nameOf(id)}</span>
+              <span className="gdy-score">🏆 {props.scores[id] ?? 0}{t.points}</span>
             </li>
           ))}
         </ol>
@@ -119,6 +130,7 @@ export function OnlineGame(props: {
         <button className="gdy-btn primary" onClick={doPlay} disabled={!myTurn || selected.length === 0 || myPlace != null}>
           {t.play}
         </button>
+        <QuickChat lang={props.lang} chats={props.chats} send={props.send} />
       </div>
     </div>
   );

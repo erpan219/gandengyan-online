@@ -150,7 +150,20 @@ function currentMatch(room: Room | undefined): Match | null {
   return (room?.game as Match | null) ?? null;
 }
 
-wss.on('connection', (ws: WebSocket) => {
+// Rate limiting: track room creations per IP
+const roomCreationTimes = new Map<string, number[]>();
+
+function checkRoomCreationRate(ip: string): boolean {
+  const now = Date.now();
+  const times = roomCreationTimes.get(ip) ?? [];
+  const recent = times.filter((t) => now - t < 60000); // 1 minute window
+  if (recent.length >= 5) return false; // max 5 rooms per minute
+  recent.push(now);
+  roomCreationTimes.set(ip, recent);
+  return true;
+}
+
+wss.on('connection', (ws: WebSocket, req) => {
   (ws as unknown as { isAlive: boolean }).isAlive = true;
 
   ws.on('pong', () => {
@@ -170,6 +183,8 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (raw) => {
     const text = toText(raw);
     if (!text) return;
+    // Limit message size to prevent memory exhaustion
+    if (text.length > 10000) return;
 
     let msg: ClientMsg;
     try {
@@ -178,8 +193,12 @@ wss.on('connection', (ws: WebSocket) => {
       return;
     }
 
+    // Validate message structure
+    if (!msg || typeof msg.type !== 'string') return;
+
     switch (msg.type) {
       case 'HELLO': {
+        if (msg.token !== undefined && typeof msg.token !== 'string') break;
         if (!msg.token) break;
         const found = manager.findByToken(msg.token);
         if (!found) break;
@@ -199,6 +218,15 @@ wss.on('connection', (ws: WebSocket) => {
       }
 
       case 'CREATE_ROOM': {
+        if (typeof msg.name !== 'string') break;
+        if (msg.playerCount !== 3 && msg.playerCount !== 4) break;
+        if (typeof msg.fillWithBots !== 'boolean') break;
+        // Rate limit room creation
+        const clientIp = (req.socket.remoteAddress ?? 'unknown');
+        if (!checkRoomCreationRate(clientIp)) {
+          send(ws, { type: 'ERROR', code: 'RATE_LIMITED', message: 'Too many rooms. Wait a minute.' });
+          break;
+        }
         const name = msg.name.trim().slice(0, 20) || 'Player';
         const pc = msg.playerCount === 4 ? 4 : 3;
         const { room, hostSeat } = manager.createRoom(pc, msg.fillWithBots, name, msg.noShuffle ?? false);
@@ -211,6 +239,7 @@ wss.on('connection', (ws: WebSocket) => {
       }
 
       case 'JOIN_ROOM': {
+        if (typeof msg.roomCode !== 'string' || typeof msg.name !== 'string') break;
         const room = manager.getRoom(msg.roomCode);
         if (!room) {
           send(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: 'Room not found.' });
@@ -228,13 +257,16 @@ wss.on('connection', (ws: WebSocket) => {
           }
         } catch (error) {
           const code = error instanceof Error && error.message === 'ROOM_FULL' ? 'ROOM_FULL' : 'SERVER_ERROR';
-          send(ws, { type: 'ERROR', code, message: error instanceof Error ? error.message : 'Join failed.' });
+          // Don't leak internal error details to client
+          const message = code === 'ROOM_FULL' ? 'Room is full.' : 'Join failed.';
+          send(ws, { type: 'ERROR', code, message });
         }
         break;
       }
 
       case 'SET_READY': {
         if (!seat) break;
+        if (typeof msg.ready !== 'boolean') break;
         seat.ready = msg.ready;
         seat.lastSeen = Date.now();
         broadcastRoom(currentRoom());
@@ -275,13 +307,32 @@ wss.on('connection', (ws: WebSocket) => {
 
       case 'PLAY_CARDS': {
         if (!seat) break;
+        if (!Array.isArray(msg.cardIds) || !msg.cardIds.every((c) => typeof c === 'string')) break;
+        if (typeof msg.expectedRevision !== 'number') break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PLAY', msg.cardIds, msg.expectedRevision);
         break;
       }
 
       case 'PASS': {
         if (!seat) break;
+        if (typeof msg.expectedRevision !== 'number') break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PASS', [], msg.expectedRevision);
+        break;
+      }
+
+      case 'CHAT': {
+        if (!seat) break;
+        if (typeof msg.text !== 'string') break;
+        const room = currentRoom();
+        if (!room) break;
+        // Rate limit: 1 message per 3 seconds
+        const now = Date.now();
+        const lastChat = (seat as unknown as { lastChat?: number }).lastChat ?? 0;
+        if (now - lastChat < 3000) break;
+        (seat as unknown as { lastChat?: number }).lastChat = now;
+        const text = msg.text.slice(0, 50);
+        if (!text.trim()) break;
+        room.broadcast({ type: 'CHAT_MSG', from: seat.playerId, fromName: seat.name, text });
         break;
       }
 

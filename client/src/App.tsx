@@ -52,6 +52,8 @@ export default function App() {
           view={online.game.view}
           seats={online.room.seats}
           hostId={online.room.hostId}
+          chats={online.chats}
+          scores={online.game.scores ?? {}}
           send={online.send}
           onLeave={() => {
             online.disconnect();

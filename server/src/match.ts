@@ -12,6 +12,10 @@ export class Match {
   public previousWinnerId: string | null = null;
   public turnTimer: NodeJS.Timeout | null = null;
   public botTimer: NodeJS.Timeout | null = null;
+  /** Cumulative scores across hands: playerId -> total points */
+  public scores: Record<string, number> = {};
+  /** Bombs played this hand: playerId -> {bombs, rockets} */
+  private handBombs: Record<string, { bombs: number; rockets: number }> = {};
 
   constructor(room: Room) {
     this.room = room;
@@ -34,6 +38,12 @@ export class Match {
   private dealNewHand(handNumber: number, leaderId: string | null): void {
     const seatIds = this.seatIds();
     if (seatIds.length === 0) return;
+
+    // Reset per-hand bomb tracking
+    this.handBombs = {};
+    for (const id of seatIds) {
+      this.handBombs[id] = { bombs: 0, rockets: 0 };
+    }
 
     const deckIds = createDeck().map((card) => card.id);
     const shuffled: CardId[] = this.room.noShuffle ? barelyShuffle(deckIds) : shuffle(deckIds);
@@ -98,6 +108,7 @@ export class Match {
         view: getPlayerView(state, playerId),
         handNumber: this.handNumber,
         previousWinnerId: this.previousWinnerId,
+        scores: this.scores,
       });
     }
   }
@@ -254,16 +265,42 @@ export class Match {
     this.clearTurnTimer();
     this.clearBotTimer();
 
+    // Track bombs for scoring
+    if (kind === 'PLAY' && this.state.lastPlay) {
+      const comboKind = this.state.lastPlay.combination.kind;
+      if (comboKind === 'ROCKET') {
+        this.handBombs[playerId].rockets++;
+      } else if (comboKind === 'FOUR_BOMB' || comboKind === 'TRIPLE_BOMB') {
+        this.handBombs[playerId].bombs++;
+      }
+    }
+
     if (this.state.status === "FINISHED") {
       this.previousWinnerId =
         this.state.finishOrder[0] ?? null;
       this.room.phase = "RESULTS";
+      this.calculateScores();
     }
 
     this.broadcastViews();
     this.broadcastRoom();
     this.scheduleTurn();
     return true;
+  }
+
+  /** Calculate cumulative scores when a hand finishes. */
+  private calculateScores(): void {
+    if (!this.state || this.state.status !== "FINISHED") return;
+    const n = this.room.playerCount;
+    const placePoints = n === 4 ? [3, 2, 1, 0] : [2, 1, 0];
+    
+    this.state.finishOrder.forEach((playerId, idx) => {
+      const place = placePoints[idx] ?? 0;
+      const bombs = this.handBombs[playerId] ?? { bombs: 0, rockets: 0 };
+      const bombBonus = bombs.bombs * 1 + bombs.rockets * 2;
+      const handTotal = place + bombBonus;
+      this.scores[playerId] = (this.scores[playerId] ?? 0) + handTotal;
+    });
   }
 
   private currentRevision(): number {
