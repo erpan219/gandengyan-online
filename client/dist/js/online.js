@@ -156,17 +156,26 @@ const Online = {
       case 'GAME_STATE':
         try {
           this.revision = msg.view.revision;
-          // Rebuild seatMap from game state (handles bots added at start)
-          if (msg.view.players) {
+          // Rebuild seatMap from game state on every update.
+          // The players array is in seatOrder, so index == seat.
+          // Must rebuild (not just add missing) because stale mappings
+          // cause wrong turn indicators when players finish.
+          if (msg.view.players && Array.isArray(msg.view.players)) {
+            const freshSeatMap = {};
+            const seenIds = new Set();
             msg.view.players.forEach((p, idx) => {
-              if (!(p.id in this.seatMap)) {
-                this.seatMap[p.id] = idx;
-                if (!this.names[p.id]) this.names[p.id] = 'Player' + (idx + 1);
-              }
+              if (!p || !p.id || seenIds.has(p.id)) return; // skip nulls/dupes
+              seenIds.add(p.id);
+              freshSeatMap[p.id] = idx;
+              if (!this.names[p.id]) this.names[p.id] = 'Player' + (idx + 1);
             });
-            // Update mySeat if needed
-            const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
-            if (myIdx >= 0) this.mySeat = myIdx;
+            // Only replace if we got valid mappings
+            if (Object.keys(freshSeatMap).length > 0) {
+              this.seatMap = freshSeatMap;
+              // Update mySeat only if our ID is present
+              const myIdx = msg.view.players.findIndex(p => p && p.id === msg.view.selfId);
+              if (myIdx >= 0) this.mySeat = myIdx;
+            }
           }
           // Use server-provided bot IDs (not stale room state)
           const _botIds = new Set(msg.botIds || []);
