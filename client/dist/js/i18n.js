@@ -7,6 +7,10 @@ const I18N = {
     subtitle: '和朋友在线联机 · 无需注册',
     h_name: '你的昵称',
     h_mode: '玩法',
+    m_3p: '3人局',
+    m_3p_d: '18张/人',
+    m_4p: '4人局',
+    m_4p_d: '14/14/13/13',
     m_classic: '经典三人',
     m_classic_d: '1–3 人联机,空位由 AI 补',
     m_duel: '二人对决',
@@ -96,6 +100,9 @@ const I18N = {
     c_plane: '飞机', c_plane_single: '飞机带单', c_plane_pair: '飞机带对',
     c_four_two: '四带二', c_four_two_pairs: '四带两对',
     c_bomb: '炸弹', c_soft: '软炸', c_laizi_bomb: '癞子炸', c_rocket: '王炸',
+    c_triplebomb: '三张炸弹', c_fourbomb: '四张炸弹',
+    reason_invalid_combo: '无效组合',
+    reason_no_beat: '打不过上一手',
     s_lwin: '地主胜利!',
     s_fwin: '农民胜利!',
     s_youwin: '你赢了 🎉',
@@ -143,13 +150,17 @@ const I18N = {
 <h3>🔀 不洗牌模式</h3>
 <p>发牌前只做几次随机交换,同点数扎堆,炸弹满天飞!</p>
 <h3>🌐 联机</h3>
-<p>创建房间后把 4 位房间码发给朋友,对方输入即可加入。人数不足时空位由 AI 补齐;中途掉线由 AI 接管,重连可夺回。</p>`,
+<p>创建房间后把 6 位房间码发给朋友,对方输入即可加入。人数不足时空位由 AI 补齐;中途掉线由 AI 接管,重连可夺回。</p>`,
   },
   en: {
     title: 'Gandengyan',
     subtitle: 'Play with friends online · no signup',
     h_name: 'Your nickname',
     h_mode: 'Game mode',
+    m_3p: '3 Players',
+    m_3p_d: '18 cards each',
+    m_4p: '4 Players',
+    m_4p_d: '14/14/13/13',
     m_classic: 'Classic (3P)',
     m_classic_d: 'For 1–3 humans — AIs fill any empty seat',
     m_duel: 'Heads-up duel',
@@ -239,6 +250,9 @@ const I18N = {
     c_plane: 'Plane', c_plane_single: 'Plane + singles', c_plane_pair: 'Plane + pairs',
     c_four_two: 'Four + 2', c_four_two_pairs: 'Four + 2 pairs',
     c_bomb: 'Bomb', c_soft: 'Soft bomb', c_laizi_bomb: 'Wild bomb', c_rocket: 'Rocket',
+    c_triplebomb: 'Triple bomb', c_fourbomb: 'Four bomb',
+    reason_invalid_combo: 'Invalid combination',
+    reason_no_beat: 'Does not beat the previous play',
     s_lwin: 'Landlord wins!',
     s_fwin: 'Farmers win!',
     s_youwin: 'You win 🎉',
@@ -284,10 +298,11 @@ const I18N = {
 <p>Pass allowed when responding; must play on free lead. Ordinary plays need same type, same count, strictly higher. Bombs can be played anytime.</p>
 <h3>🏆 Scoring</h3>
 <p>3P: 1st/2nd/3rd = 2/1/0 pts; 4P: 1st/2nd/3rd/4th = 3/2/1/0 pts. Cumulative across hands.</p>
+<p>Bomb bonuses: Triple bomb +1, Four bomb +2, Rocket +3. Bonuses stack with placement points.</p>
 <h3>🔀 No-shuffle</h3>
 <p>Deck gets only a few swaps — ranks clump together, bombs everywhere!</p>
 <h3>🌐 Online</h3>
-<p>Create a room, share the 4-letter code. Empty seats filled by AI; disconnects are taken over by AI, reconnect to reclaim.</p>`,
+<p>Create a room, share the 6-character code. Empty seats filled by AI; disconnects are taken over by AI, reconnect to reclaim.</p>`,
   },
 };
 

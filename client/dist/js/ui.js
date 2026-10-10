@@ -85,11 +85,15 @@ function cardHTML(c, cls, laizi) {
   const isJoker = c.r >= 16;
   const red = isJoker ? c.r === 17 : (c.s === 1 || c.s === 2);
   const lz = laizi && c.r === laizi ? ' lz' : '';
+  const selected = cls.includes('sel');
+  const label = isJoker ? (c.r === 17 ? 'Big Joker' : 'Small Joker') :
+    `${RANK_LABELS[c.r]} of ${['','Hearts','Diamonds','Clubs','Spades'][c.s] || ''}`;
+  const a11y = ` role="button" tabindex="0" aria-pressed="${selected}" aria-label="${label}${selected ? ', selected' : ''}"`;
   if (isJoker) {
-    return `<div class="card jk ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}">` +
+    return `<div class="card jk ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
       `<span class="jk-txt">${c.r === 17 ? 'JOKER' : 'joker'}</span><span class="cs">🃏</span></div>`;
   }
-  return `<div class="card ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}">` +
+  return `<div class="card ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
     `<span class="cr">${RANK_LABELS[c.r]}</span><span class="cs">${SUITS[c.s]}</span></div>`;
 }
 
@@ -114,6 +118,8 @@ function applyStaticTexts() {
   const set = (id, key) => { const el = $(id); if (el) el.textContent = t(key); };
   set('#t-title', 'title'); set('#t-subtitle', 'subtitle');
   set('#t-name', 'h_name'); set('#t-mode', 'h_mode');
+  set('#t-mode3', 'm_3p'); set('#t-mode3d', 'm_3p_d');
+  set('#t-mode4', 'm_4p'); set('#t-mode4d', 'm_4p_d');
   set('#t-mclassic', 'm_classic'); set('#t-mclassic-d', 'm_classic_d');
   set('#t-mduel', 'm_duel'); set('#t-mduel-d', 'm_duel_d');
   set('#t-mteam', 'm_team'); set('#t-mteam-d', 'm_team_d');
@@ -666,6 +672,7 @@ function actionsHTML(v) {
     }
     const sel = v.myHand.filter(c => App.selected.has(c.id));
     let combo = null;
+    let invalidReason = '';
     if (sel.length) {
       const cls = gdyClassify(sel.map(c => c.id), v.n || 3);
       if (cls.ok) {
@@ -681,12 +688,18 @@ function actionsHTML(v) {
             cardCount: prev.cards.length,
             strength: prev.rank,
           };
-          if (!gdyCanBeat(cls.combination, prevCombo)) combo = null;
+          if (!gdyCanBeat(cls.combination, prevCombo)) {
+            combo = null;
+            invalidReason = t('reason_no_beat') || 'Does not beat the previous play';
+          }
         }
+      } else {
+        invalidReason = t('reason_invalid_combo') || 'Invalid combination';
       }
     }
     const preview = combo ? `<span class="combo-preview">${comboName(combo)}</span>` : '';
-    return `${cdHtml}${preview}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
+    const reasonHtml = invalidReason ? `<span class="invalid-reason" role="status">${invalidReason}</span>` : '';
+    return `${cdHtml}${preview}${reasonHtml}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
       `<button class="act-btn" data-act="pass" ${prev ? '' : 'disabled'}>${t('b_pass')}</button>` +
       `<button class="act-btn primary" data-act="play" ${combo ? '' : 'disabled'}>${t('b_play')}</button>`;
   }
@@ -813,9 +826,11 @@ function playSounds(v) {
 let _countdownInterval = null;
 function startCountdownDisplay() {
   stopCountdownDisplay();
-  const el = document.getElementById('turn-countdown');
-  if (!el) return;
+  if (!document.getElementById('turn-countdown')) return;
   _countdownInterval = setInterval(() => {
+    // Look up element each tick: re-renders (e.g. card selection) replace it
+    const el = document.getElementById('turn-countdown');
+    if (!el) return;
     const remaining = Math.max(0, Math.ceil((App.turnDeadline - Date.now()) / 1000));
     el.textContent = remaining + 's';
     el.classList.toggle('urgent', remaining <= 10);
@@ -1051,6 +1066,17 @@ function bindActionButtons() {
    toggles one card. Bound once in boot() — the hand element persists. */
 function bindHandDrag() {
   const handEl = $('#my-hand');
+  // Keyboard support: Enter/Space toggles card selection
+  handEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.card[data-id]');
+    if (!card) return;
+    e.preventDefault();
+    const id = card.dataset.id;
+    if (App.selected.has(id)) { App.selected.delete(id); Snd.tick(); }
+    else { App.selected.add(id); Snd.select(); }
+    renderGame();
+  });
   let drag = null;
   const cardIdAt = (x, y) => {
     const el = document.elementFromPoint(x, y);
@@ -1326,11 +1352,51 @@ function boot() {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) { Snd.unlock(); Bgm.poke(); }
   });
-  const openHelp = () => $('#help-modal').classList.remove('hidden');
+  // Help modal with proper dialog semantics, focus management, and Escape
+  let _helpOpener = null;
+  const openHelp = () => {
+    const modal = $('#help-modal');
+    _helpOpener = document.activeElement;
+    modal.classList.remove('hidden');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    // Initial focus on close button
+    const closeBtn = $('#btn-help-close');
+    if (closeBtn) closeBtn.focus();
+  };
+  const closeHelp = () => {
+    $('#help-modal').classList.add('hidden');
+    // Return focus to opener
+    if (_helpOpener && _helpOpener.focus) _helpOpener.focus();
+  };
   $('#btn-help').onclick = openHelp;
   $('#btn-help2').onclick = openHelp;
-  $('#btn-help-close').onclick = () => $('#help-modal').classList.add('hidden');
-  $('#help-modal').onclick = e => { if (e.target.id === 'help-modal') $('#help-modal').classList.add('hidden'); };
+  $('#btn-help-close').onclick = closeHelp;
+  $('#help-modal').onclick = e => { if (e.target.id === 'help-modal') closeHelp(); };
+  // Escape closes help, Tab is trapped within modal
+  document.addEventListener('keydown', (e) => {
+    const modal = $('#help-modal');
+    if (modal.classList.contains('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeHelp();
+      return;
+    }
+    if (e.key === 'Tab') {
+      // Focus trap: keep focus within modal
+      const focusable = modal.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
 
   $('#btn-practice').onclick = startPractice;
   $('#btn-create').onclick = () => createRoom(0);

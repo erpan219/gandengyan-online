@@ -292,8 +292,9 @@ const Online = {
         fillWithBots: fillWithBots,
         noShuffle: noShuffle,
       });
-    }).catch(() => {
-      // Don't show error for stale-connection rejections
+    }).catch((err) => {
+      // Suppress stale-connection: the replacement attempt succeeded
+      if (err && err.message === 'stale-connection') return;
       if ((this._gen || 0) === gen) toast(t('e_net'));
     });
   },
@@ -306,7 +307,8 @@ const Online = {
       // Reject stale continuation from superseded connection
       if ((this._gen || 0) !== gen) return;
       netSend({ type: 'JOIN_ROOM', roomCode: code, name: name });
-    }).catch(() => {
+    }).catch((err) => {
+      if (err && err.message === 'stale-connection') return;
       if ((this._gen || 0) === gen) toast(t('e_net'));
     });
   },
