@@ -86,7 +86,7 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
     trick: trick,
     liveMult: 1,
     players: players,
-    myHand: srvView.selfHand.map(srvCardToUi),
+    myHand: srvView.selfHand.map(srvCardToUi).sort((a, b) => (a.r - b.r) || (a.s - b.s)),
     result: null,
   };
 }
