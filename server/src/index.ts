@@ -121,8 +121,10 @@ function send(ws: WebSocket, msg: ServerMsg): void {
 }
 
 function roomStateMsg(room: Room): ServerMsg {
+  room.revision += 1;
   return {
     type: 'ROOM_STATE',
+    revision: room.revision,
     roomCode: room.code,
     playerCount: room.playerCount,
     seats: room.seatInfo(),

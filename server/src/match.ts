@@ -94,8 +94,10 @@ export class Match {
   onReconnect(playerId: string): void {
     const state = this.state;
     if (!state) return;
+    this.room.revision += 1;
     this.sendTo(playerId, {
       type: 'GAME_STATE',
+      revision: this.room.revision,
       view: getPlayerView(state, playerId),
       handNumber: this.handNumber,
       previousWinnerId: this.previousWinnerId,
@@ -112,8 +114,10 @@ export class Match {
       const playerId = seat.playerId as string;
       if (!playerId || seat.isBot) continue;
 
+      this.room.revision += 1;
       this.sendTo(playerId, {
         type: "GAME_STATE",
+        revision: this.room.revision,
         view: getPlayerView(state, playerId),
         handNumber: this.handNumber,
         previousWinnerId: this.previousWinnerId,

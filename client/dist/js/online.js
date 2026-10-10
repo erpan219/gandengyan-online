@@ -98,6 +98,8 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
 const Online = {
   ws: null,
   roomCode: null,
+  lastRevision: -1,  // For stale message rejection (architectural fix)
+  onlineScreen: 'HOME', // Explicit screen state: HOME|LOBBY|PLAYING|RESULTS
   playerId: null,
   token: null,
   seatMap: {},      // playerId -> seat index
@@ -133,6 +135,14 @@ const Online = {
   },
 
   onMessage(msg) {
+    // Architectural fix: reject stale messages by revision
+    // Prevents out-of-order processing causing state corruption
+    if (typeof msg.revision === 'number') {
+      if (msg.revision <= this.lastRevision) {
+        return; // stale, ignore
+      }
+      this.lastRevision = msg.revision;
+    }
     switch (msg.type) {
       case 'WELCOME':
         this.playerId = msg.playerId;

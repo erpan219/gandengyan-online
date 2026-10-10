@@ -15,6 +15,7 @@ export interface Seat {
 
 export class Room {
   code: string;
+  revision: number = 0; // Monotonic counter for message ordering
   playerCount: 3 | 4;
   fillWithBots: boolean;
   noShuffle: boolean;
