@@ -9,9 +9,31 @@ const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.
 
 let ws = null;
 let netHandlers = {};
+let netGen = 0; // Generation counter for socket isolation
 
 function netConnect(handlers) {
+  netGen += 1;
+  const myGen = netGen;
   netHandlers = handlers || {};
+  // Tag handlers with generation for stale rejection
+  const genHandlers = {
+    onOpen: handlers && handlers.onOpen ? () => {
+      if (myGen !== netGen) return; // stale, ignore
+      handlers.onOpen();
+    } : null,
+    onMessage: handlers && handlers.onMessage ? (msg) => {
+      if (myGen !== netGen) return; // stale, ignore
+      handlers.onMessage(msg);
+    } : null,
+    onClose: handlers && handlers.onClose ? () => {
+      if (myGen !== netGen) return; // stale, ignore
+      handlers.onClose();
+    } : null,
+    onError: handlers && handlers.onError ? () => {
+      if (myGen !== netGen) return;
+      handlers.onError();
+    } : null,
+  };
   return new Promise((resolve, reject) => {
     try {
       ws = new WebSocket(WS_URL);
@@ -20,23 +42,27 @@ function netConnect(handlers) {
       return;
     }
     ws.onopen = () => {
-      if (netHandlers.onOpen) netHandlers.onOpen();
+      if (genHandlers.onOpen) genHandlers.onOpen();
       resolve();
     };
     ws.onmessage = (ev) => {
       try {
         const msg = JSON.parse(ev.data);
-        if (netHandlers.onMessage) netHandlers.onMessage(msg);
+        if (genHandlers.onMessage) genHandlers.onMessage(msg);
       } catch (e) { /* ignore malformed */ }
     };
     ws.onclose = () => {
-      if (netHandlers.onClose) netHandlers.onClose();
+      if (genHandlers.onClose) genHandlers.onClose();
     };
     ws.onerror = () => {
-      if (netHandlers.onError) netHandlers.onError();
+      if (genHandlers.onError) genHandlers.onError();
       reject(new Error('ws-error'));
     };
   });
+}
+
+function netInvalidate() {
+  netGen += 1; // Invalidate all current handlers
 }
 
 function netSend(msg) {

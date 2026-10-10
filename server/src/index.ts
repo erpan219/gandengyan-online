@@ -236,7 +236,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         attachSeat(ws, seat);
         welcome(seat);
         broadcastRoom(found.room);
-        if (found.room.phase === 'PLAYING') {
+        if (found.room.phase === 'PLAYING' || found.room.phase === 'RESULTS') {
           currentMatch(found.room)?.onReconnect(seat.playerId);
         }
         break;
@@ -277,7 +277,7 @@ wss.on('connection', (ws: WebSocket, req) => {
           attachSeat(ws, joined);
           welcome(joined);
           broadcastRoom(room);
-          if (room.phase === 'PLAYING') {
+          if (room.phase === 'PLAYING' || room.phase === 'RESULTS') {
             currentMatch(room)?.onReconnect(joined.playerId);
           }
         } catch (error) {

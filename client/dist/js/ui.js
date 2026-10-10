@@ -1254,8 +1254,12 @@ function goHome() {
   $('#chat-pop').classList.add('hidden');
   // Clean up Online session to prevent auto-reconnect after intentional leave
   // Use netClose() which closes the actual socket in net.js
+  // Then invalidate to reject any stale callbacks from old socket
   if (typeof netClose === 'function') {
     try { netClose(); } catch (e) {}
+  }
+  if (typeof netInvalidate === 'function') {
+    try { netInvalidate(); } catch (e) {}
   }
   if (typeof Online !== 'undefined' && Online) {
     Online.intentionalLeave = true; // flag to suppress reconnect
