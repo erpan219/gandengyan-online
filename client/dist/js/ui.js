@@ -102,6 +102,27 @@ function cardHTML(c, cls, laizi, interactive) {
     `<span class="cr">${RANK_LABELS[c.r]}</span><span class="cs">${SUITS[c.s]}</span></div>`;
 }
 
+/* Canonical UI combo-type -> engine kind. Adapters and the selection
+   classifier use 'triplebomb'/'fourbomb'; tolerate the underscored
+   spellings too so a producer change can never silently degrade to SINGLE. */
+function uiKindToGdy(type) {
+  const k = String(type || '').toLowerCase();
+  switch (k) {
+    case 'single': return 'SINGLE';
+    case 'pair': return 'PAIR';
+    case 'straight': return 'STRAIGHT';
+    case 'pair_run': return 'PAIR_RUN';
+    case 'triplebomb':
+    case 'triple_bomb': return 'TRIPLE_BOMB';
+    case 'fourbomb':
+    case 'four_bomb': return 'FOUR_BOMB';
+    case 'rocket': return 'ROCKET';
+    default:
+      if (typeof console !== 'undefined') console.warn('[gdy] unknown combo type:', type);
+      return 'SINGLE';
+  }
+}
+
 function comboName(combo) {
   if (!combo) return '';
   if (combo.type === 'bomb') {
@@ -687,9 +708,8 @@ function actionsHTML(v) {
         };
         // Check if it beats prev
         if (prev && prev.cards) {
-          const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
           const prevCombo = {
-            kind: kindMap[prev.type] || 'SINGLE',
+            kind: uiKindToGdy(prev.type),
             cardCount: prev.cards.length,
             strength: prev.rank,
           };
@@ -718,9 +738,8 @@ function canBeat(v) {
   if (!c || !c.cards) return true;  // No trick to beat, or invalid
   // Check if player has any card that can beat
   const handIds = v.myHand.map(card => card.id);
-  const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
   const prevCombo = {
-    kind: kindMap[c.type] || 'SINGLE',
+    kind: uiKindToGdy(c.type),
     cardCount: c.cards.length,
     strength: c.rank,
   };
@@ -807,7 +826,7 @@ function playSounds(v) {
     if (cur.plays[i] === 'P') { Snd.pass(); continue; }
     const c = v.players[i].lastPlay.combo;
     if (c && c.type === 'rocket') { Snd.rocket(); showComboBurst('🚀 ' + t('c_rocket')); Snd.combo(); }
-    else if (c && (c.type === 'bomb' || c.type === 'triplebomb' || c.type === 'fourbomb')) {
+    else if (c && (c.type === 'bomb' || uiKindToGdy(c.type) === 'TRIPLE_BOMB' || uiKindToGdy(c.type) === 'FOUR_BOMB')) {
       Snd.bomb(); showComboBurst('💣 ' + t('c_bomb')); Snd.combo();
     }
     else if (c && c.type === 'straight') { Snd.play(); showComboBurst(t('c_straight')); }
@@ -1142,9 +1161,8 @@ function doHint() {
   if (p && p.cards) {
     // p is {type, rank, cards} from our buildView trick
     // Reconstruct a minimal combination for gdyCanBeat
-    const kindMap = { 'single': 'SINGLE', 'pair': 'PAIR', 'straight': 'STRAIGHT', 'pair_run': 'PAIR_RUN', 'triplebomb': 'TRIPLE_BOMB', 'fourbomb': 'FOUR_BOMB', 'rocket': 'ROCKET' };
     prev = {
-      kind: kindMap[p.type] || 'SINGLE',
+      kind: uiKindToGdy(p.type),
       cardCount: p.cards.length,
       strength: p.rank,
       cardIds: p.cards.map(c => c.id),

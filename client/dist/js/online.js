@@ -68,7 +68,9 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names, msgPayload) {
     }
     trick = {
       combo: {
-        type: lp.combination.kind.toLowerCase(),
+        // Canonical UI contract: 'triplebomb'/'fourbomb' (no underscore),
+        // matching the selection classifier and i18n keys in ui.js.
+        type: lp.combination.kind.toLowerCase().replace('_bomb', 'bomb'),
         rank: lp.combination.strength,
         cards: cards,
       },

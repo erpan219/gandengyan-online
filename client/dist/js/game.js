@@ -326,7 +326,9 @@ class Game {
   buildView(seat) {
     const settle = this.state === 'settle';
     const trickCombo = this.trick.combo ? {
-      type: this.trick.combo.kind.toLowerCase(),
+      // Canonical UI contract: 'triplebomb'/'fourbomb' (no underscore),
+      // matching the selection classifier and i18n keys in ui.js.
+      type: this.trick.combo.kind.toLowerCase().replace('_bomb', 'bomb'),
       rank: this.trick.combo.strength,
       cards: this.trick.combo.cardIds.map(id => this.cardObj(id)),
     } : null;
