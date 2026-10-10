@@ -465,14 +465,14 @@ button.off { opacity: .38; text-decoration: line-through; }
 #my-hand .card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-#my-hand .card:hover {
-  transform: translateY(-12px) scale(1.05);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-  z-index: 10;
-}
-#my-hand .card.selected {
-  transform: translateY(-18px);
-  box-shadow: 0 0 0 2px #ffd700, 0 10px 25px rgba(0,0,0,0.5);
+/* Hover lift only on devices with a real hover pointer: on touch, taps
+   leave :hover stuck, which used to pin deselected cards above neighbors. */
+@media (hover: hover) {
+  #my-hand .card:hover {
+    transform: translateY(-12px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    z-index: 10;
+  }
 }
 
 /* 5. Win celebration */
@@ -949,10 +949,18 @@ button.off { opacity: .38; text-decoration: line-through; }
   box-shadow: 0 0 12px rgba(245, 192, 78, 0.7), 0 6px 12px rgba(0,0,0,0.4);
   border-color: #f5c04e;
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  z-index: 5;
 }
-/* Fix: unselected cards must return to hand - override stuck hover on touch */
+/* Deselected cards fully reset position AND stacking, so the original
+   overlap order is restored without an extra tap */
 #my-hand .card:not(.sel) {
   transform: translateY(0) scale(1);
+  z-index: auto;
+}
+/* Visible keyboard focus that does not disturb stacking order */
+#my-hand .card:focus-visible {
+  outline: 2px solid #f5c04e;
+  outline-offset: 2px;
 }
 #my-hand .card {
   transition: transform 0.15s ease-out;
