@@ -156,8 +156,14 @@ export class Room {
   }
 
   broadcast(msg: ServerMsg, except?: string): void {
+    // Optimization: serialize once, send to all (Qwen-reviewed)
+    const payload = JSON.stringify(msg);
     for (const s of this.seats) {
-      if (s.playerId !== except) this.sendTo(s.playerId, msg);
+      if (s.playerId === except) continue;
+      const ws = s.ws;
+      if (ws && ws.readyState === 1) {
+        ws.send(payload);
+      }
     }
   }
 

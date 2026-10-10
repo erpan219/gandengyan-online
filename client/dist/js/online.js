@@ -20,6 +20,20 @@ function srvCardToUi(id) {
 }
 
 /* Convert server PlayerView to ui.js view format */
+// Optimized hand sorting with memoization (Qwen-reviewed)
+// Only re-sorts when hand contents actually change
+const _handSortCache = { key: null, sorted: null };
+function sortHandCached(selfHand) {
+  const key = selfHand.join(',');
+  if (_handSortCache.key === key) return _handSortCache.sorted;
+  const strength = { 4: 0, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8, 13: 9, 14: 10, 15: 11, 3: 12, 16: 13, 17: 14 };
+  const sorted = selfHand.map(srvCardToUi).sort((a, b) =>
+    (strength[a.r] - strength[b.r]) || (a.s - b.s));
+  _handSortCache.key = key;
+  _handSortCache.sorted = sorted;
+  return sorted;
+}
+
 function srvViewToUi(srvView, seatMap, mySeatIdx, names, msgPayload) {
   // seatMap: server playerId -> seat index (0..n-1)
   // srvView: { selfId, selfHand, players, currentPlayerId, lastPlay, ... }
@@ -108,10 +122,7 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names, msgPayload) {
     trick: trick,
     liveMult: 1,
     players: players,
-    myHand: srvView.selfHand.map(srvCardToUi).sort((a, b) => {
-      const strength = { 4: 0, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8, 13: 9, 14: 10, 15: 11, 3: 12, 16: 13, 17: 14 };
-      return (strength[a.r] - strength[b.r]) || (a.s - b.s);
-    }),
+    myHand: sortHandCached(srvView.selfHand),
     result: result,
   };
 }
