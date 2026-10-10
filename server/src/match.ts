@@ -101,6 +101,8 @@ export class Match {
       view: getPlayerView(state, playerId),
       handNumber: this.handNumber,
       previousWinnerId: this.previousWinnerId,
+      scores: this.scores,
+      handScores: this.handScores,
       botIds: this.botIds(),
     });
     this.broadcastRoom();
@@ -122,6 +124,7 @@ export class Match {
         handNumber: this.handNumber,
         previousWinnerId: this.previousWinnerId,
         scores: this.scores,
+        handScores: this.handScores,
         botIds: this.botIds(),
       });
     }
@@ -324,17 +327,22 @@ export class Match {
     return true;
   }
 
+  /** Per-hand scores for the just-finished hand (for result display). */
+  private handScores: Record<string, number> = {};
+
   /** Calculate cumulative scores when a hand finishes. */
   private calculateScores(): void {
     if (!this.state || this.state.status !== "FINISHED") return;
     const n = this.room.playerCount;
     const placePoints = n === 4 ? [3, 2, 1, 0] : [2, 1, 0];
-    
+
+    this.handScores = {};
     this.state.finishOrder.forEach((playerId, idx) => {
       const place = placePoints[idx] ?? 0;
       const bombs = this.handBombs[playerId] ?? { bombs: 0, rockets: 0 };
       const bombBonus = bombs.bombs * 1 + bombs.rockets * 2;
       const handTotal = place + bombBonus;
+      this.handScores[playerId] = handTotal;
       this.scores[playerId] = (this.scores[playerId] ?? 0) + handTotal;
     });
   }

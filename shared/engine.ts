@@ -211,14 +211,23 @@ export function getLegalMoves(view: PlayerView, playerCount: 3 | 4): Combination
   }
 
   // Straights & pair-runs: build from rank sequences present in hand
+  // Note: pair-runs have their own minimum (2) separate from straights,
+  // per classifyHand which accepts two consecutive pairs as PAIR_RUN.
   const seqRanks = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
   const minStraight = playerCount === 3 ? 4 : 3;
+  const minPairRun = 2;
   for (let len = minStraight; len <= Math.min(11, seqRanks.length); len++) {
     for (let start = 0; start + len <= seqRanks.length; start++) {
       const ranks = seqRanks.slice(start, start + len);
       if (ranks.every((r) => (byRank.get(r) ?? []).length >= 1)) {
         push(ranks.map((r) => byRank.get(r)![0]));
       }
+    }
+  }
+  // Pair-runs enumerated separately with their own minimum length
+  for (let len = minPairRun; len <= Math.min(11, seqRanks.length); len++) {
+    for (let start = 0; start + len <= seqRanks.length; start++) {
+      const ranks = seqRanks.slice(start, start + len);
       if (ranks.every((r) => (byRank.get(r) ?? []).length >= 2)) {
         push(ranks.flatMap((r) => byRank.get(r)!.slice(0, 2)));
       }

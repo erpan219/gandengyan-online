@@ -76,11 +76,24 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names, msgPayload) {
   const actor = srvView.currentPlayerId != null ? seatMap[srvView.currentPlayerId] : null;
 
   // Build result when game finished
+  // handScores: per-hand points (for +N display), scores: cumulative totals
   let result = null;
   if (srvView.status === 'FINISHED' && srvView.finishOrder) {
     result = {
       finishOrder: srvView.finishOrder.map(pid => seatMap[pid]),
       scores: msgPayload && msgPayload.scores,
+      handScores: msgPayload && msgPayload.handScores,
+      // roundScores for renderer compatibility (per-hand by seat)
+      roundScores: (() => {
+        const rs = {};
+        if (msgPayload && msgPayload.handScores) {
+          for (const [pid, score] of Object.entries(msgPayload.handScores)) {
+            const seat = seatMap[pid];
+            if (seat != null) rs[seat] = score;
+          }
+        }
+        return rs;
+      })(),
     };
   }
 
