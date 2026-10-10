@@ -100,6 +100,10 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<vo
 
 const server = createServer(handleHttp);
 const manager = new RoomManager();
+// Global: pending AI takeover timers (playerId -> timeout)
+// Allows cancelling takeover when player reconnects within grace period
+const takeoverTimers = new Map<string, NodeJS.Timeout>();
+
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 const sweepTimer = setInterval(() => {
@@ -217,6 +221,12 @@ wss.on('connection', (ws: WebSocket, req) => {
         if (!found) break;
         seat = found.seat;
         roomCode = found.room.code;
+        // Cancel pending AI takeover (player reconnected within grace period)
+        const pendingTakeover = takeoverTimers.get(seat.playerId);
+        if (pendingTakeover) {
+          clearTimeout(pendingTakeover);
+          takeoverTimers.delete(seat.playerId);
+        }
         // Reclaim seat if AI took over during disconnect
         if (seat.isBot) {
           found.room.reclaimFromAI(seat.playerId);
@@ -299,7 +309,13 @@ wss.on('connection', (ws: WebSocket, req) => {
           match.nextHand();
           break;
         }
-        if (room.phase === 'PLAYING') break;
+        if (room.phase === 'PLAYING') {
+          // Client may have missed GAME_STATE - resend it
+          if (match && seat) {
+            match.onReconnect(seat.playerId);
+          }
+          break;
+        }
         if (room.fillWithBots) room.fillEmptySeats();
         if (room.seats.some((s) => s.playerId.startsWith('empty:'))) {
           send(ws, { type: 'ERROR', code: 'SEATS_EMPTY', message: 'All seats must be filled.' });
@@ -363,11 +379,28 @@ wss.on('connection', (ws: WebSocket, req) => {
 
   ws.on('close', () => {
     const room = currentRoom();
-    // AI takes over instantly if a player disconnects mid-game
+    // Grace period: wait 30s before AI takeover to allow reconnect
+    // (prevents host "turning into AI" on brief network blips)
     if (room && room.phase === 'PLAYING' && seat && !seat.isBot) {
-      room.takeoverByAI(seat.playerId);
-      // If it was their turn, trigger the bot to move
-      currentMatch(room)?.onTimeout(seat.playerId);
+      const pid = seat.playerId;
+      // Clear any existing timer for this player
+      const existing = takeoverTimers.get(pid);
+      if (existing) clearTimeout(existing);
+      // Schedule AI takeover after 30s grace period
+      const timer = setTimeout(() => {
+        takeoverTimers.delete(pid);
+        const r = currentRoom();
+        // Only take over if still disconnected and game still playing
+        const s = r?.getSeat(pid);
+        if (r && r.phase === 'PLAYING' && s && !s.isBot && !s.connected) {
+          r.takeoverByAI(pid);
+          currentMatch(r)?.onTimeout(pid);
+          broadcastRoom(r);
+        }
+      }, 30000);
+      takeoverTimers.set(pid, timer);
+      // Mark as disconnected but don't free the seat (game in progress)
+      detachSeat(seat);
     } else if (room && seat) {
       // Lobby disconnect: free the seat so others can join
       // and transfer host if the host left
