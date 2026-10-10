@@ -74,6 +74,7 @@ class Game {
     this.passed = new Set();
     this.result = null;
     this.bombsUsed = 0;
+    this.playerBombs = Array(n).fill(null).map(() => ({ bombs: 0, rockets: 0 }));
 
     this.emit('deal');
     this.pump();
@@ -177,10 +178,18 @@ class Game {
       for (let i = 0; i < this.n; i++) {
         if (i !== seat) this.lastPlays[i] = null;
       }
-      this.passed.clear();
     }
+    // Clear pass history on every accepted play (free lead or beating play)
+    // so all other players get a fresh chance to respond
+    this.passed.clear();
     if (gdyBombTier(cls.combination.kind) > 0) {
       this.bombsUsed++;
+      // Track per-player for scoring (match server formula)
+      if (cls.combination.kind === 'ROCKET') {
+        this.playerBombs[seat].rockets++;
+      } else {
+        this.playerBombs[seat].bombs++;
+      }
       this.emit('bomb', { seat, kind: cls.combination.kind });
     }
 
@@ -256,15 +265,18 @@ class Game {
   endRound() {
     this.state = 'settle';
     const n = this.n;
-    // Scoring: 3P: 2/1/0; 4P: 3/2/1/0
+    // Scoring: 3P: 2/1/0; 4P: 3/2/1/0 (matches server)
     const points = n === 3 ? [2, 1, 0] : [3, 2, 1, 0];
     const roundScores = Array(n).fill(0);
     this.finishOrder.forEach((seat, idx) => {
       const p = points[idx] || 0;
-      roundScores[seat] = p;
-      this.scores[seat] += p;
+      // Bomb bonus: +1 per bomb, +2 per rocket (matches server formula)
+      const pb = this.playerBombs[seat] || { bombs: 0, rockets: 0 };
+      const bonus = pb.bombs * 1 + pb.rockets * 2;
+      const total = p + bonus;
+      roundScores[seat] = total;
+      this.scores[seat] += total;
     });
-    // Bomb bonus: +1 per bomb used (split among? simplified: each player gets +bombs they used)
     this.wins[this.finishOrder[0]]++;
     this.prevWinner = this.finishOrder[0];
 
