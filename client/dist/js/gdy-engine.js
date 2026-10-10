@@ -198,13 +198,20 @@ function gdyFindPlays(handIds, target, playerCount) {
 
   // Straights and pair runs (brute force over rank sequences)
   const ranks = GDY_SEQ_RANKS;
-  for (let len = playerCount === 3 ? 4 : 3; len <= 11; len++) {
+  const straightMin = playerCount === 3 ? 4 : 3;
+  for (let len = straightMin; len <= 11; len++) {
     for (let start = 0; start + len <= ranks.length; start++) {
       const seqRanks = ranks.slice(start, start + len);
       // Straight: one of each
       if (seqRanks.every(r => byRank.has(r))) {
         tryCombo(seqRanks.map(r => byRank.get(r)[0]));
       }
+    }
+  }
+  // Pair runs: minimum 2 ranks (separate from straight minimum)
+  for (let len = 2; len <= 11; len++) {
+    for (let start = 0; start + len <= ranks.length; start++) {
+      const seqRanks = ranks.slice(start, start + len);
       // Pair run: two of each
       if (seqRanks.every(r => byRank.has(r) && byRank.get(r).length >= 2)) {
         const ids = [];
@@ -464,7 +471,7 @@ function gdyHintRanked(handIds, target, playerCount, oppCounts) {
 
 function gdyHint(handIds, target, playerCount, oppCounts) {
   const key = handIds.slice().sort().join(',') + '|' +
-    (target ? target.kind + target.strength : 'lead') + '|' + playerCount;
+    (target ? target.kind + ':' + target.cardCount + ':' + target.strength : 'lead') + '|' + playerCount;
   // Reset cycle if game state changed
   if (_hintCache.key !== key) {
     _hintCache = { key, plays: gdyHintRanked(handIds, target, playerCount, oppCounts), idx: 0 };
