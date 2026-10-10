@@ -147,6 +147,7 @@ const I18N = {
 <p>跟牌时可"过",自由领出时必须出牌。普通牌需同牌型同张数且更大;炸弹可随时打出。</p>
 <h3>🏆 计分</h3>
 <p>三人局:第 1/2/3 名得 2/1/0 分;四人局:第 1/2/3/4 名得 3/2/1/0 分。多局累计。</p>
+<p>炸弹加分:每个炸弹+1,王炸+2。可与名次分叠加。</p>
 <h3>🔀 不洗牌模式</h3>
 <p>发牌前只做几次随机交换,同点数扎堆,炸弹满天飞!</p>
 <h3>🌐 联机</h3>
@@ -298,7 +299,7 @@ const I18N = {
 <p>Pass allowed when responding; must play on free lead. Ordinary plays need same type, same count, strictly higher. Bombs can be played anytime.</p>
 <h3>🏆 Scoring</h3>
 <p>3P: 1st/2nd/3rd = 2/1/0 pts; 4P: 1st/2nd/3rd/4th = 3/2/1/0 pts. Cumulative across hands.</p>
-<p>Bomb bonuses: Triple bomb +1, Four bomb +2, Rocket +3. Bonuses stack with placement points.</p>
+<p>Bomb bonuses: Each bomb +1, Rocket +2. Bonuses stack with placement points.</p>
 <h3>🔀 No-shuffle</h3>
 <p>Deck gets only a few swaps — ranks clump together, bombs everywhere!</p>
 <h3>🌐 Online</h3>
