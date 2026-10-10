@@ -96,7 +96,7 @@ function cardHTML(c, cls, laizi, interactive) {
     : ` aria-label="${label}"`;
   if (isJoker) {
     return `<div class="card jk ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
-      `<span class="jk-txt">${c.r === 17 ? 'JOKER' : 'joker'}</span><span class="cs">🃏</span></div>`;
+      `<span class="jk-txt">JOKER</span><span class="cs">🃏</span></div>`;
   }
   return `<div class="card ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
     `<span class="cr">${RANK_LABELS[c.r]}</span><span class="cs">${SUITS[c.s]}</span></div>`;
