@@ -492,6 +492,7 @@ function act(kind, data) {
     data = data || {};
     if (kind === 'play') Online.playCards(Array.isArray(data.ids) ? data.ids : []);
     else if (kind === 'pass') Online.pass();
+    else if (kind === 'again') Online.startGame(); // next hand via START_GAME
     else if (kind === 'chat') {
       const txt = (t('chat') && t('chat')[data.id]) || '';
       if (txt) Online.chat(txt);

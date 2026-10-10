@@ -20,7 +20,7 @@ function srvCardToUi(id) {
 }
 
 /* Convert server PlayerView to ui.js view format */
-function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
+function srvViewToUi(srvView, seatMap, mySeatIdx, names, msgPayload) {
   // seatMap: server playerId -> seat index (0..n-1)
   // srvView: { selfId, selfHand, players, currentPlayerId, lastPlay, ... }
 
@@ -36,7 +36,7 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
       cardCount: p.cardCount,
       landlord: false,
       ally: false,
-      score: 0,
+      score: (msgPayload && msgPayload.scores && msgPayload.scores[p.id]) || 0,
       wins: 0,
       lastPlay: null,  // filled below
       hand: undefined,
@@ -75,13 +75,22 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
   // Current turn
   const actor = srvView.currentPlayerId != null ? seatMap[srvView.currentPlayerId] : null;
 
+  // Build result when game finished
+  let result = null;
+  if (srvView.status === 'FINISHED' && srvView.finishOrder) {
+    result = {
+      finishOrder: srvView.finishOrder.map(pid => seatMap[pid]),
+      scores: msgPayload && msgPayload.scores,
+    };
+  }
+
   return {
     state: srvView.status === 'PLAYING' ? 'playing' : 'settle',
     mode: 'gdy',
     flags: { noShuffle: false },
     n: n,
     mySeat: mySeatIdx,
-    roundNo: 1,
+    roundNo: (msgPayload && msgPayload.handNumber) || 1,
     actor: actor,
     trick: trick,
     liveMult: 1,
@@ -90,7 +99,7 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
       const strength = { 4: 0, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8, 13: 9, 14: 10, 15: 11, 3: 12, 16: 13, 17: 14 };
       return (strength[a.r] - strength[b.r]) || (a.s - b.s);
     }),
-    result: null,
+    result: result,
   };
 }
 
@@ -125,9 +134,17 @@ const Online = {
         this._reconnectAttempts = (this._reconnectAttempts || 0) + 1;
         const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts - 1), 10000);
         toast(t('reconnecting') || 'Reconnecting...');
-        setTimeout(() => {
-          if (this.roomCode) {
+        // Store timer ID so goHome() can cancel it
+        // Capture generation to reject stale timer callbacks
+        const gen = this._gen || 0;
+        this._reconnectTimer = setTimeout(() => {
+          this._reconnectTimer = null;
+          // Reject if generation changed (new session started)
+          if ((this._gen || 0) !== gen) return;
+          if (this.roomCode && !this.intentionalLeave) {
             this.connect().then(() => {
+              // Double-check generation after async connect
+              if ((this._gen || 0) !== gen) return;
               this._reconnectAttempts = 0;
               // Rejoin room with token
               netSend({ type: 'JOIN_ROOM', roomCode: this.roomCode, name: this.playerName || 'Player', token: this.token });
@@ -202,7 +219,7 @@ const Online = {
           // Use server-provided bot IDs (not stale room state)
           const _botIds = new Set(msg.botIds || []);
           msg.view._botIds = _botIds;
-          const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
+          const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names, msg);
           App.view = view;
           App.role = 'online';
           showScreen('screen-game');
