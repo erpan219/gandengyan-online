@@ -149,8 +149,10 @@ export class Match {
   }
 
   broadcastRoom(): void {
+    this.room.revision += 1;
     this.broadcast({
       type: "ROOM_STATE",
+      revision: this.room.revision,
       roomCode: this.room.code,
       playerCount: this.room.playerCount,
       seats: this.room.seatInfo(),

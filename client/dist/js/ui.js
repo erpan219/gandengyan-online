@@ -659,10 +659,10 @@ function actionsHTML(v) {
         `<button class="act-btn primary" data-act="cancel-autoplay">${t('cancel_autoplay')}</button></div>`;
     }
     const prev = prevFor(v);
+    const cdHtml = `<span id="turn-countdown" class="turn-countdown"></span>`;
     if (prev && !canBeat(v)) {
       return `${cdHtml}<button class="act-btn noplay" data-act="pass">${t('cant_beat')}</button>`;
     }
-    const cdHtml = `<span id="turn-countdown" class="turn-countdown"></span>`;
     const sel = v.myHand.filter(c => App.selected.has(c.id));
     let combo = null;
     if (sel.length) {
@@ -1252,21 +1252,27 @@ function goHome() {
   $('#settle-overlay').classList.add('hidden');
   $('#chat-pop').classList.add('hidden');
   // Clean up Online session to prevent auto-reconnect after intentional leave
+  // Use netClose() which closes the actual socket in net.js
+  if (typeof netClose === 'function') {
+    try { netClose(); } catch (e) {}
+  }
   if (typeof Online !== 'undefined' && Online) {
     Online.intentionalLeave = true; // flag to suppress reconnect
-    if (Online.ws) {
-      try { Online.ws.close(); } catch (e) {}
-      Online.ws = null;
-    }
+    Online.ws = null;
     Online.roomCode = null;
     Online.revisionRoom = null;
     Online.lastRevision = -1;
     Online.onlineScreen = 'HOME';
+    // Clear token so new room doesn't reattach old seat via HELLO
+    Online.token = null;
+    try { localStorage.removeItem('gdy_token'); } catch (e) {}
     // Clear any pending reconnect timer
     if (Online._reconnectTimer) {
       clearTimeout(Online._reconnectTimer);
       Online._reconnectTimer = null;
     }
+    // Increment generation so late callbacks from old connection are ignored
+    Online._gen = (Online._gen || 0) + 1;
   }
   showScreen('screen-home');
 }

@@ -386,6 +386,11 @@ wss.on('connection', (ws: WebSocket, req) => {
   });
 
   ws.on('close', () => {
+    // Socket ownership check: if seat was reclaimed by a new connection,
+    // this old socket's close event must not detach it
+    if (seat && seat.ws && seat.ws !== ws) {
+      return; // stale close event, ignore
+    }
     const room = currentRoom();
     // Grace period: wait 30s before AI takeover to allow reconnect
     // (prevents host "turning into AI" on brief network blips)
