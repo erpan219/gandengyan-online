@@ -174,8 +174,8 @@ button.off { opacity: .38; text-decoration: line-through; }
 .card .cs { font-size: 18px; line-height: 1; }
 .card.red { color: #d3382f; }
 .card.jk .jk-txt {
-  display: block; width: 14px; font-size: 11px; font-weight: 800;
-  line-height: 1.3; word-break: break-all; letter-spacing: 1px;
+  display: block; width: 12px; font-size: 9px; font-weight: 800;
+  line-height: 1.2; word-break: break-all;
 }
 .card.jk .cs { position: absolute; bottom: 6px; left: 6px; }
 .card.back { background: repeating-linear-gradient(135deg, rgba(214,175,93,.18) 0 3px, transparent 3px 12px), repeating-linear-gradient(45deg, rgba(214,175,93,.14) 0 3px, transparent 3px 12px), repeating-linear-gradient(0deg, rgba(24,3,6,.26) 0 1px, transparent 1px 20px), repeating-linear-gradient(90deg, rgba(24,3,6,.26) 0 1px, transparent 1px 20px), linear-gradient(145deg, #5c1119 0%, #450d16 48%, #651a25 100%); border-color: #27060b; box-shadow: 0 14px 34px rgba(0,0,0,.42), inset 0 0 0 1px rgba(39,6,11,.92), inset 0 1px 0 rgba(214,175,93,.18); }
@@ -187,7 +187,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 .card.mini { width: 52px; height: 74px; padding: 3px 5px; border-radius: 7px; }
 .card.mini .cr { font-size: 17px; }
 .card.mini .cs { font-size: 15px; }
-.card.mini.jk .jk-txt { font-size: 8px; width: 10px; }
+.card.mini.jk .jk-txt { font-size: 7px; width: 8px; }
 .card.mini.jk .cs { bottom: 3px; left: 3px; font-size: 9px; }
 .card.mini.lz::after { font-size: 8px; padding: 0 2px; }
 .mini-cards .card { margin-left: -24px; }
