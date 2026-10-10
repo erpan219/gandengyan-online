@@ -296,6 +296,16 @@ wss.on('connection', (ws: WebSocket, req) => {
           found.room.reclaimFromAI(seat.playerId);
         }
         attachSeat(ws, seat);
+        // R1: if no valid connected human host exists, the reconnecting human
+        // becomes host. Never steal host from a valid transferred host.
+        if (!seat.isBot) {
+          const curHost = found.room.seats.find(
+            (s) => s.playerId === found.room.hostId && !s.isBot && s.connected
+          );
+          if (!curHost) {
+            found.room.hostId = seat.playerId;
+          }
+        }
         welcome(seat);
         broadcastRoom(found.room);
         if (found.room.phase === 'PLAYING' || found.room.phase === 'RESULTS') {
@@ -476,6 +486,8 @@ wss.on('connection', (ws: WebSocket, req) => {
         // Intentional departure (vs. transport loss): free the seat
         // immediately in LOBBY/RESULTS. During PLAYING the seat must stay
         // for the AI-takeover grace, so leave it to the close handler.
+        // R2: ignore from superseded sockets — only the current owner can leave.
+        if (seat && seat.ws !== ws) break;
         const room = currentRoom();
         if (room && seat && !seat.isBot &&
             (room.phase === 'LOBBY' || room.phase === 'RESULTS')) {
