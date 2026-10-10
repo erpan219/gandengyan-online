@@ -99,6 +99,7 @@ const Online = {
   ws: null,
   roomCode: null,
   lastRevision: -1,  // For stale message rejection (architectural fix)
+  revisionRoom: null, // Room code this revision belongs to (scope fix)
   onlineScreen: 'HOME', // Explicit screen state: HOME|LOBBY|PLAYING|RESULTS
   playerId: null,
   token: null,
@@ -114,6 +115,11 @@ const Online = {
       },
       onMessage: (msg) => this.onMessage(msg),
       onClose: () => {
+        // Don't reconnect after intentional leave
+        if (this.intentionalLeave) {
+          this.intentionalLeave = false; // reset for next session
+          return;
+        }
         toast(t('e_disconnect') || 'Disconnected');
         // Auto-reconnect with exponential backoff
         this._reconnectAttempts = (this._reconnectAttempts || 0) + 1;
@@ -135,9 +141,15 @@ const Online = {
   },
 
   onMessage(msg) {
-    // Architectural fix: reject stale messages by revision
-    // Prevents out-of-order processing causing state corruption
+    // Architectural fix: reject stale messages by revision, scoped to room session
+    // Prevents out-of-order processing AND cross-room contamination
     if (typeof msg.revision === 'number') {
+      const msgRoom = msg.roomCode || (msg.payload && msg.payload.roomCode) || this.roomCode;
+      // New room session -> reset revision tracking
+      if (msgRoom && msgRoom !== this.revisionRoom) {
+        this.revisionRoom = msgRoom;
+        this.lastRevision = -1;
+      }
       if (msg.revision <= this.lastRevision) {
         return; // stale, ignore
       }
@@ -226,6 +238,7 @@ const Online = {
   },
 
   createRoom(name, playerCount, fillWithBots, noShuffle) {
+    this.intentionalLeave = false; // new session, allow reconnect
     this.playerName = name;
     this.connect().then(() => {
       netSend({
@@ -239,6 +252,7 @@ const Online = {
   },
 
   joinRoom(code, name) {
+    this.intentionalLeave = false; // new session, allow reconnect
     this.playerName = name;
     this.connect().then(() => {
       netSend({ type: 'JOIN_ROOM', roomCode: code, name: name });

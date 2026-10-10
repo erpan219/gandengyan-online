@@ -1251,6 +1251,23 @@ function goHome() {
   setCreateBusy(false);
   $('#settle-overlay').classList.add('hidden');
   $('#chat-pop').classList.add('hidden');
+  // Clean up Online session to prevent auto-reconnect after intentional leave
+  if (typeof Online !== 'undefined' && Online) {
+    Online.intentionalLeave = true; // flag to suppress reconnect
+    if (Online.ws) {
+      try { Online.ws.close(); } catch (e) {}
+      Online.ws = null;
+    }
+    Online.roomCode = null;
+    Online.revisionRoom = null;
+    Online.lastRevision = -1;
+    Online.onlineScreen = 'HOME';
+    // Clear any pending reconnect timer
+    if (Online._reconnectTimer) {
+      clearTimeout(Online._reconnectTimer);
+      Online._reconnectTimer = null;
+    }
+  }
   showScreen('screen-home');
 }
 
