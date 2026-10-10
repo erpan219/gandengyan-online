@@ -270,6 +270,16 @@ wss.on('connection', (ws: WebSocket, req) => {
           send(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: 'Room not found.' });
           break;
         }
+        // Idempotent: if this socket already has a seat in this room (e.g. via HELLO),
+        // don't create a duplicate — just re-welcome the existing seat
+        if (seat && roomCode === room.code && room.getSeat(seat.playerId)) {
+          welcome(seat);
+          broadcastRoom(room);
+          if (room.phase === 'PLAYING' || room.phase === 'RESULTS') {
+            currentMatch(room)?.onReconnect(seat.playerId);
+          }
+          break;
+        }
         try {
           const joined = room.addHuman(msg.name.trim().slice(0, 20) || 'Player', msg.token);
           seat = joined;
@@ -291,6 +301,8 @@ wss.on('connection', (ws: WebSocket, req) => {
 
       case 'SET_READY': {
         if (!seat) break;
+        // Reject commands from replaced sockets
+        if (seat.ws !== ws) break;
         if (typeof msg.ready !== 'boolean') break;
         seat.ready = msg.ready;
         seat.lastSeen = Date.now();
@@ -299,6 +311,8 @@ wss.on('connection', (ws: WebSocket, req) => {
       }
 
       case 'START_GAME': {
+        // Reject commands from replaced sockets
+        if (seat && seat.ws !== ws) break;
         if (!seat) {
           send(ws, { type: 'ERROR', code: 'NO_SEAT', message: 'You are not seated. Try rejoining the room.' });
           break;
@@ -314,6 +328,14 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
         const match = currentMatch(room);
         if (room.phase === 'RESULTS' && match) {
+          // Validate occupancy before starting next hand (same as first hand)
+          if (room.fillWithBots) room.fillEmptySeats();
+          const activeSeats = room.seats.filter(s => !s.playerId.startsWith('empty:'));
+          if (activeSeats.length < room.playerCount) {
+            send(ws, { type: 'ERROR', code: 'SEATS_EMPTY',
+              message: `Not enough players (${activeSeats.length}/${room.playerCount}). Waiting for more players.` });
+            break;
+          }
           match.nextHand();
           break;
         }
@@ -344,6 +366,7 @@ wss.on('connection', (ws: WebSocket, req) => {
 
       case 'PLAY_CARDS': {
         if (!seat) break;
+        if (seat.ws !== ws) break;
         if (!Array.isArray(msg.cardIds) || !msg.cardIds.every((c) => typeof c === 'string')) break;
         if (typeof msg.expectedRevision !== 'number') break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PLAY', msg.cardIds, msg.expectedRevision);
@@ -352,6 +375,7 @@ wss.on('connection', (ws: WebSocket, req) => {
 
       case 'PASS': {
         if (!seat) break;
+        if (seat.ws !== ws) break;
         if (typeof msg.expectedRevision !== 'number') break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PASS', [], msg.expectedRevision);
         break;
