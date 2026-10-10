@@ -47,7 +47,16 @@ input:focus { border-color: #f5c04e; }
   background: rgba(255,255,255,.06); border: 2px solid transparent; border-radius: 12px; cursor: pointer;
 }
 .mode-card:has(input:checked) { border-color: #f5c04e; background: rgba(245,192,78,.12); }
-.mode-card input { display: none; }
+.mode-card input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.mode-card:focus-within {
+  outline: 2px solid #f5c04e;
+  outline-offset: 2px;
+}
 .mc-title { font-weight: 700; }
 .mc-desc { font-size: 12px; color: rgba(238,244,238,.6); }
 
