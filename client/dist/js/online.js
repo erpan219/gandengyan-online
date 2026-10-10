@@ -108,6 +108,21 @@ const Online = {
       onMessage: (msg) => this.onMessage(msg),
       onClose: () => {
         toast(t('e_disconnect') || 'Disconnected');
+        // Auto-reconnect with exponential backoff
+        this._reconnectAttempts = (this._reconnectAttempts || 0) + 1;
+        const delay = Math.min(1000 * Math.pow(2, this._reconnectAttempts - 1), 10000);
+        toast(t('reconnecting') || 'Reconnecting...');
+        setTimeout(() => {
+          if (this.roomCode) {
+            this.connect().then(() => {
+              this._reconnectAttempts = 0;
+              // Rejoin room with token
+              netSend({ type: 'JOIN_ROOM', roomCode: this.roomCode, name: this.playerName || 'Player', token: this.token });
+            }).catch(() => {
+              // Will retry on next onClose
+            });
+          }
+        }, delay);
       },
     });
   },
@@ -167,6 +182,7 @@ const Online = {
   },
 
   createRoom(name, playerCount, fillWithBots, noShuffle) {
+    this.playerName = name;
     this.connect().then(() => {
       netSend({
         type: 'CREATE_ROOM',
@@ -179,6 +195,7 @@ const Online = {
   },
 
   joinRoom(code, name) {
+    this.playerName = name;
     this.connect().then(() => {
       netSend({ type: 'JOIN_ROOM', roomCode: code, name: name });
     }).catch(() => toast(t('e_net')));
@@ -189,7 +206,9 @@ const Online = {
   },
 
   startGame() {
-    netSend({ type: 'START_GAME' });
+    if (!netSend({ type: 'START_GAME' })) {
+      if (typeof toast === 'function') toast(t('e_disconnect') || 'Disconnected - please rejoin');
+    }
   },
 
   playCards(cardIds) {
