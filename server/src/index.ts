@@ -297,9 +297,15 @@ wss.on('connection', (ws: WebSocket, req) => {
       }
 
       case 'START_GAME': {
-        if (!seat) break;
+        if (!seat) {
+          send(ws, { type: 'ERROR', code: 'NO_SEAT', message: 'You are not seated. Try rejoining the room.' });
+          break;
+        }
         const room = currentRoom();
-        if (!room) break;
+        if (!room) {
+          send(ws, { type: 'ERROR', code: 'NO_ROOM', message: 'Room not found. Try rejoining.' });
+          break;
+        }
         if (room.hostId !== seat.playerId) {
           send(ws, { type: 'ERROR', code: 'NOT_HOST', message: 'Only the host can start.' });
           break;

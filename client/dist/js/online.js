@@ -32,7 +32,7 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
     const isMe = p.id === myPlayerId;
     return {
       name: names[p.id] || ('Player' + (idx + 1)),
-      isAI: false,  // server handles bots; mark by name if needed
+      isAI: (srvView._botIds && srvView._botIds.has(p.id)) || false,
       cardCount: p.cardCount,
       landlord: false,
       ally: false,
@@ -165,6 +165,16 @@ const Online = {
             const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
             if (myIdx >= 0) this.mySeat = myIdx;
           }
+          // Collect bot IDs from room seats for AI indicators
+          const _botIds = new Set();
+          if (this.room && this.room.seats) {
+            for (const s of this.room.seats) {
+              if (s.isBot && s.playerId && !s.playerId.startsWith('empty:')) {
+                _botIds.add(s.playerId);
+              }
+            }
+          }
+          msg.view._botIds = _botIds;
           const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
           App.view = view;
           App.role = 'online';
