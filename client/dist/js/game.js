@@ -97,8 +97,14 @@ class Game {
     if (this._t) { clearTimeout(this._t); this._t = null; }
     const s = this.actorSeat();
     if (s == null || !this.players[s].isAI || this.isFinished(s)) return;
-    const seq = this.seq;
-    const run = () => { if (this.seq === seq) this.aiStep(s); };
+    // Fix: check turn ownership instead of seq (seq increments on every emit,
+    // which caused intermittent AI freezes when emits happened during the delay)
+    const run = () => {
+      // Only skip if it's no longer this AI's turn or game state changed
+      if (this.actorSeat() !== s) return;
+      if (this.isFinished(s)) return;
+      this.aiStep(s);
+    };
     if (this.cfg.aiDelay <= 0) run();
     else this._t = setTimeout(run, this.cfg.aiDelay + Math.random() * 700);
   }
