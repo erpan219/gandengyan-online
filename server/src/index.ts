@@ -368,6 +368,32 @@ wss.on('connection', (ws: WebSocket, req) => {
       room.takeoverByAI(seat.playerId);
       // If it was their turn, trigger the bot to move
       currentMatch(room)?.onTimeout(seat.playerId);
+    } else if (room && seat) {
+      // Lobby disconnect: free the seat so others can join
+      // and transfer host if the host left
+      const seatId = seat.playerId;
+      const wasHost = room.hostId === seatId;
+      // Free the seat
+      const idx = room.seats.findIndex(s => s.playerId === seatId);
+      if (idx >= 0) {
+        room.seats[idx] = {
+          playerId: `empty:${idx}`,
+          name: '',
+          isBot: false,
+          token: '',
+          ready: false,
+          ws: null,
+          connected: false,
+          lastSeen: Date.now(),
+        };
+      }
+      // Transfer host to next connected player
+      if (wasHost) {
+        const nextHost = room.seats.find(s =>
+          !s.playerId.startsWith('empty:') && !s.isBot && s.connected
+        );
+        room.hostId = nextHost ? nextHost.playerId : '';
+      }
     } else {
       detachSeat(seat);
     }
