@@ -326,7 +326,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
         const name = msg.name.trim().slice(0, 20) || 'Player';
         const pc = msg.playerCount === 4 ? 4 : 3;
-        const { room, hostSeat } = manager.createRoom(pc, msg.fillWithBots, name, msg.noShuffle ?? false);
+        const { room, hostSeat } = manager.createRoom(pc, msg.fillWithBots, name, msg.noShuffle === true);
         seat = hostSeat;
         roomCode = room.code;
         attachSeat(ws, seat);
