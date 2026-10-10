@@ -6,6 +6,7 @@ export type ClientMsg =
   | { type: 'JOIN_ROOM'; roomCode: string; name: string; token?: string }
   | { type: 'SET_READY'; ready: boolean }
   | { type: 'START_GAME' }
+  | { type: 'LEAVE_ROOM' }
   | { type: 'PLAY_CARDS'; cardIds: CardId[]; expectedRevision: number }
   | { type: 'PASS'; expectedRevision: number }
   | { type: 'CHAT'; text: string }

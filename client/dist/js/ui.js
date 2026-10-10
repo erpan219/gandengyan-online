@@ -1261,6 +1261,7 @@ function confirmExit() {
 }
 
 function goHome() {
+  const wasOnline = App.role === 'online';
   sendBye();
   stopHeartbeat();
   App._netSession = (App._netSession || 0) + 1;
@@ -1292,8 +1293,18 @@ function goHome() {
   // Clean up Online session to prevent auto-reconnect after intentional leave
   // Use netClose() which closes the actual socket in net.js
   // Then invalidate to reject any stale callbacks from old socket
+  if (wasOnline && typeof netSend === 'function') {
+    // Intentional departure (vs transport loss): tell the server to free our
+    // seat immediately instead of holding it through the reconnect grace.
+    try { netSend({ type: 'LEAVE_ROOM' }); } catch (e) {}
+  }
   if (typeof netClose === 'function') {
-    try { netClose(); } catch (e) {}
+    if (wasOnline) {
+      // Brief flush delay so LEAVE_ROOM reaches the server before the socket dies
+      setTimeout(() => { try { netClose(); } catch (e) {} }, 150);
+    } else {
+      try { netClose(); } catch (e) {}
+    }
   }
   if (typeof netInvalidate === 'function') {
     try { netInvalidate(); } catch (e) {}
