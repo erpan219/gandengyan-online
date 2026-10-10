@@ -165,15 +165,8 @@ const Online = {
             const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
             if (myIdx >= 0) this.mySeat = myIdx;
           }
-          // Collect bot IDs from room seats for AI indicators
-          const _botIds = new Set();
-          if (this.room && this.room.seats) {
-            for (const s of this.room.seats) {
-              if (s.isBot && s.playerId && !s.playerId.startsWith('empty:')) {
-                _botIds.add(s.playerId);
-              }
-            }
-          }
+          // Use server-provided bot IDs (not stale room state)
+          const _botIds = new Set(msg.botIds || []);
           msg.view._botIds = _botIds;
           const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
           App.view = view;

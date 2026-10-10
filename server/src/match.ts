@@ -84,6 +84,13 @@ export class Match {
     this.dealNewHand(this.handNumber + 1, this.previousWinnerId);
   }
 
+  /** Collect bot player IDs for GAME_STATE so client doesn't rely on stale room state. */
+  private botIds(): string[] {
+    return this.room.seats
+      .filter(s => s.isBot && s.playerId && !s.playerId.startsWith('empty:'))
+      .map(s => s.playerId as string);
+  }
+
   onReconnect(playerId: string): void {
     const state = this.state;
     if (!state) return;
@@ -92,6 +99,7 @@ export class Match {
       view: getPlayerView(state, playerId),
       handNumber: this.handNumber,
       previousWinnerId: this.previousWinnerId,
+      botIds: this.botIds(),
     });
     this.broadcastRoom();
   }
@@ -110,6 +118,7 @@ export class Match {
         handNumber: this.handNumber,
         previousWinnerId: this.previousWinnerId,
         scores: this.scores,
+        botIds: this.botIds(),
       });
     }
   }

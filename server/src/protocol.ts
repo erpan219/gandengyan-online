@@ -24,7 +24,7 @@ export type RoomPhase = 'LOBBY' | 'PLAYING' | 'RESULTS';
 export type ServerMsg =
   | { type: 'WELCOME'; playerId: string; token: string }
   | { type: 'ROOM_STATE'; roomCode: string; playerCount: number; seats: SeatInfo[]; phase: RoomPhase; hostId: string }
-  | { type: 'GAME_STATE'; view: PlayerView; handNumber: number; previousWinnerId: string | null; scores?: Record<string, number> }
+  | { type: 'GAME_STATE'; view: PlayerView; handNumber: number; previousWinnerId: string | null; scores?: Record<string, number>; botIds?: string[] }
   | { type: 'CHAT_MSG'; from: string; fromName: string; text: string }
   | { type: 'ERROR'; code: string; message: string }
   | { type: 'PONG' };

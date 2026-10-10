@@ -206,8 +206,20 @@ function updateRoomScreenOnline(msg) {
   const isHost = msg.hostId && Online.playerId === msg.hostId;
   const btnStart = $('#btn-start');
   if (btnStart) btnStart.style.display = isHost ? '' : 'none';
-  // Show the room screen
-  showScreen('screen-room');
+  // Only switch to room screen when in lobby phase AND game screen is not active.
+  // During PLAYING, ROOM_STATE updates (bot moves, reconnects, etc.) must NOT
+  // yank the player back from the game table to the waiting room.
+  // Belt-and-suspenders: check both the message phase and the actual DOM state,
+  // in case a stale/missing phase arrives.
+  const gameScreenActive = (() => {
+    try {
+      const el = document.getElementById('screen-game');
+      return el && el.classList.contains('active');
+    } catch (e) { return false; }
+  })();
+  if (msg.phase !== 'PLAYING' && !gameScreenActive) {
+    showScreen('screen-room');
+  }
   setCreateBusy(false);
   if (typeof setJoinBusy === 'function') setJoinBusy(false);
 }
