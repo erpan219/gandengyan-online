@@ -190,20 +190,40 @@ export class Match {
     const seat = this.room.getSeat(playerId);
 
     if (seat?.isBot) {
-      const view: PlayerView = getPlayerView(state, playerId);
-      const move = chooseBotMove(view, this.room.playerCount);
-      const cardIds: CardId[] =
-        move.type === "PLAY" ? (move.cardIds as CardId[]) : [];
+      try {
+        const view: PlayerView = getPlayerView(state, playerId);
+        const move = chooseBotMove(view, this.room.playerCount);
+        const cardIds: CardId[] =
+          move.type === "PLAY" ? (move.cardIds as CardId[]) : [];
 
-      const ok = this.applyMove(
-        playerId,
-        move.type,
-        cardIds,
-        this.currentRevision(),
-        "BOT"
-      );
+        const ok = this.applyMove(
+          playerId,
+          move.type,
+          cardIds,
+          this.currentRevision(),
+          "BOT"
+        );
 
-      if (!ok) this.scheduleTurn();
+        if (!ok) this.scheduleTurn();
+      } catch (err) {
+        // Bot logic crashed (e.g. edge case in endgame). Log and try to pass
+        // as a safe fallback instead of freezing the game.
+        console.error(`[BOT] Move failed for ${playerId}:`, err);
+        try {
+          const ok = this.applyMove(
+            playerId,
+            "PASS",
+            [],
+            this.currentRevision(),
+            "BOT"
+          );
+          if (!ok) this.scheduleTurn();
+        } catch (passErr) {
+          console.error(`[BOT] Pass fallback also failed:`, passErr);
+          // Don't retry infinitely - leave turn scheduled via existing timer
+          // The 30s human timeout will eventually trigger as last resort
+        }
+      }
       return;
     }
 
