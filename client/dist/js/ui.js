@@ -79,16 +79,21 @@ function rankLabel(r) {
   return RANK_LABELS[r];
 }
 
-function cardHTML(c, cls, laizi) {
+function cardHTML(c, cls, laizi, interactive) {
   cls = cls || '';
   if (!c) return `<div class="card back ${cls}"></div>`;
   const isJoker = c.r >= 16;
   const red = isJoker ? c.r === 17 : (c.s === 1 || c.s === 2);
   const lz = laizi && c.r === laizi ? ' lz' : '';
   const selected = cls.includes('sel');
+  // Suit index: 0=Spades, 1=Hearts, 2=Diamonds, 3=Clubs
+  const suitNames = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
   const label = isJoker ? (c.r === 17 ? 'Big Joker' : 'Small Joker') :
-    `${RANK_LABELS[c.r]} of ${['','Hearts','Diamonds','Clubs','Spades'][c.s] || ''}`;
-  const a11y = ` role="button" tabindex="0" aria-pressed="${selected}" aria-label="${label}${selected ? ', selected' : ''}"`;
+    `${RANK_LABELS[c.r]} of ${suitNames[c.s] || ''}`;
+  // Only actionable hand cards get button semantics; played cards are descriptive
+  const a11y = interactive
+    ? ` role="button" tabindex="0" aria-pressed="${selected}" aria-label="${label}${selected ? ', selected' : ''}"`
+    : ` aria-label="${label}"`;
   if (isJoker) {
     return `<div class="card jk ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
       `<span class="jk-txt">${c.r === 17 ? 'JOKER' : 'joker'}</span><span class="cs">🃏</span></div>`;
@@ -985,7 +990,7 @@ function renderGame() {
 
   $('#actions').innerHTML = actionsHTML(v);
   $('#my-hand').innerHTML = v.myHand.map(c =>
-    cardHTML(c, App.selected.has(c.id) ? 'sel' : '', v.laizi)).join('');
+    cardHTML(c, App.selected.has(c.id) ? 'sel' : '', v.laizi, true)).join('');
   layoutHand();
   $('#my-info').innerHTML = myInfoHTML(v);
   $('#btn-chat').style.display = App.role === 'local' ? 'none' : '';
@@ -1076,6 +1081,9 @@ function bindHandDrag() {
     if (App.selected.has(id)) { App.selected.delete(id); Snd.tick(); }
     else { App.selected.add(id); Snd.select(); }
     renderGame();
+    // Keep focus on the same card for repeated keyboard actions
+    const newCard = handEl.querySelector(`.card[data-id="${id}"]`);
+    if (newCard) newCard.focus();
   });
   let drag = null;
   const cardIdAt = (x, y) => {
@@ -1086,6 +1094,9 @@ function bindHandDrag() {
   const applySel = (id, on) => {
     if (on) { App.selected.add(id); Snd.select(); } else { App.selected.delete(id); Snd.tick(); }
     renderGame();
+    // Restore focus to the same card after rerender
+    const card = handEl.querySelector(`.card[data-id="${id}"]`);
+    if (card) card.focus();
   };
   handEl.addEventListener('pointerdown', e => {
     const id = cardIdAt(e.clientX, e.clientY);
