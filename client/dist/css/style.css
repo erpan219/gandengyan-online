@@ -11,7 +11,7 @@ body, button, input, select { touch-action: manipulation; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   overflow-x: hidden;
-  background: radial-gradient(ellipse at 50% 30%, #8b2424 0%, #5c1a1a 55%, #2b0b0e 100%);
+  background: radial-gradient(ellipse at 50% 28%, #93292a 0%, #671d1d 48%, #330d0f 78%, #200708 100%);
   color: #eef4ee;
   min-height: 100vh;
 }
@@ -35,9 +35,10 @@ input:focus { border-color: #f5c04e; }
 .head-btns { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
 
 .panel {
-  background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.1);
+  background: linear-gradient(180deg, rgba(64,22,24,.5), rgba(32,11,13,.55)); border: 1px solid rgba(214,175,93,.22);
   border-radius: 16px; padding: 18px; margin-top: 18px;
   display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,235,200,.06);
 }
 .field-label { font-size: 13px; color: rgba(238,244,238,.6); margin-top: 6px; }
 
@@ -78,7 +79,7 @@ input:focus { border-color: #f5c04e; }
   display: flex; flex-direction: column; gap: 3px; align-items: center;
 }
 .big-btns button i { font-style: normal; font-size: 11px; opacity: .7; }
-button.primary { background: linear-gradient(180deg, #f7ca5e, #eda93a); color: #4a3006; font-weight: 700; }
+button.primary { background: linear-gradient(180deg, #f3c55c, #e0a032); color: #4a3006; font-weight: 700; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -2px 0 rgba(146,90,16,.4), 0 2px 5px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2); }
 button.primary:disabled { filter: grayscale(.7); opacity: .5; cursor: default; }
 button.ghost { background: rgba(255,255,255,.12); color: #eef4ee; }
 button.small { padding: 6px 12px; font-size: 13px; }
@@ -168,13 +169,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 .mini-cards.reveal { opacity: .8; }
 
 /* ---------- cards ---------- */
-.card {
-  width: 62px; height: 86px; background: #fdfdf6; border-radius: 8px; color: #1c1c28;
-  border: 1px solid #b9b9a8; box-shadow: 0 2px 4px rgba(0,0,0,.35);
-  position: relative; flex: 0 0 auto; user-select: none;
-  display: flex; flex-direction: column; padding: 4px 6px;
-  transition: transform .12s ease;
-}
+.card { width: 62px; height: 86px; background: linear-gradient(135deg, #fffef9 0%, #faf5ea 28%, #f3eadb 58%, #e8dcc5 100%); border-radius: 8px; color: #1c1c28; border: 1px solid #9a6b45; box-shadow: 0 1px 2px rgba(72, 45, 18, 0.18), 0 3px 8px rgba(72, 45, 18, 0.14), 0 10px 20px rgba(72, 45, 18, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.92), inset 0 -1px 2px rgba(120, 80, 40, 0.14), inset 0 0 0 1px rgba(120, 80, 40, 0.08); position: relative; flex: 0 0 auto; user-select: none; display: flex; flex-direction: column; padding: 4px 6px; transition: transform .12s ease; }
 .card .cr { font-size: 20px; font-weight: 800; line-height: 1; }
 .card .cs { font-size: 18px; line-height: 1; }
 .card.red { color: #d3382f; }
@@ -183,10 +178,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   line-height: 1.15; word-break: break-all;
 }
 .card.jk .cs { position: absolute; bottom: 6px; left: 6px; }
-.card.back {
-  background: repeating-linear-gradient(135deg, #2c5fa8 0 6px, #244e8c 6px 12px);
-  border-color: #1c3c6c;
-}
+.card.back { background: repeating-linear-gradient(135deg, rgba(214,175,93,.18) 0 3px, transparent 3px 12px), repeating-linear-gradient(45deg, rgba(214,175,93,.14) 0 3px, transparent 3px 12px), repeating-linear-gradient(0deg, rgba(24,3,6,.26) 0 1px, transparent 1px 20px), repeating-linear-gradient(90deg, rgba(24,3,6,.26) 0 1px, transparent 1px 20px), linear-gradient(145deg, #5c1119 0%, #450d16 48%, #651a25 100%); border-color: #27060b; box-shadow: 0 14px 34px rgba(0,0,0,.42), inset 0 0 0 1px rgba(39,6,11,.92), inset 0 1px 0 rgba(214,175,93,.18); }
 .card.lz { box-shadow: 0 0 0 2px #b76bf0, 0 2px 6px rgba(183,107,240,.5); }
 .card.lz::after {
   content: '癞'; position: absolute; bottom: 4px; left: 5px; font-size: 11px;
@@ -209,7 +201,7 @@ button.off { opacity: .38; text-decoration: line-through; }
   padding: 10px 22px; border-radius: 999px; background: rgba(255,255,255,.14); color: #eef4ee; font-weight: 600;
 }
 .act-btn:disabled { opacity: .4; cursor: default; }
-.act-btn.primary { background: linear-gradient(180deg, #f7ca5e, #eda93a); color: #4a3006; }
+.act-btn.primary { background: linear-gradient(180deg, #f3c55c, #e0a032); color: #4a3006; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -2px 0 rgba(146,90,16,.4), 0 2px 5px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.2); }
 .act-btn.noplay { background: rgba(255,255,255,.08); color: rgba(238,244,238,.75); padding: 10px 34px; }
 .combo-preview { font-size: 13px; color: #ffd67e; }
 .status { font-size: 13px; color: rgba(238,244,238,.6); }
@@ -488,11 +480,14 @@ button.off { opacity: .38; text-decoration: line-through; }
 /* === Table polish === */
 #table {
   background:
-    radial-gradient(ellipse at 50% 30%, rgba(255,215,0,0.08) 0%, transparent 60%),
-    linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
+    radial-gradient(ellipse at 50% 32%, rgba(255,225,150,0.10) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.03) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%),
+    linear-gradient(135deg, #1e6a41 0%, #0e4227 50%, #1a5c3a 100%);
   border-radius: 20px;
   border: 3px solid #8b6914;
-  box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,225,150,0.12), 0 4px 20px rgba(0,0,0,0.3);
 }
 /* (merged into Centered dominant play below) */
 
@@ -557,12 +552,14 @@ button.off { opacity: .38; text-decoration: line-through; }
 /* Table felt */
 #table-mid {
   background:
-    radial-gradient(ellipse at 50% 40%, rgba(255,215,0,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse at center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 70%),
-    linear-gradient(135deg, #1a5c3a 0%, #0d3b24 50%, #1a5c3a 100%);
+    radial-gradient(ellipse at 50% 42%, rgba(255,220,140,0.10) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 65%, rgba(0,0,0,0.28) 100%),
+    linear-gradient(135deg, #1c633c 0%, #0d3b24 55%, #155231 100%);
   border: 2px solid rgba(255,215,0,0.25);
   border-radius: 20px;
-  box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,220,140,0.10), 0 4px 20px rgba(0,0,0,0.3);
 }
 
 /* Responsive cards (AurexloveU-inspired clamp) */
