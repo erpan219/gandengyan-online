@@ -281,7 +281,10 @@ const Online = {
   createRoom(name, playerCount, fillWithBots, noShuffle) {
     this.intentionalLeave = false; // new session, allow reconnect
     this.playerName = name;
+    const gen = this._gen || 0;
     this.connect().then(() => {
+      // Reject stale continuation from superseded connection
+      if ((this._gen || 0) !== gen) return;
       netSend({
         type: 'CREATE_ROOM',
         name: name,
@@ -289,15 +292,23 @@ const Online = {
         fillWithBots: fillWithBots,
         noShuffle: noShuffle,
       });
-    }).catch(() => toast(t('e_net')));
+    }).catch(() => {
+      // Don't show error for stale-connection rejections
+      if ((this._gen || 0) === gen) toast(t('e_net'));
+    });
   },
 
   joinRoom(code, name) {
     this.intentionalLeave = false; // new session, allow reconnect
     this.playerName = name;
+    const gen = this._gen || 0;
     this.connect().then(() => {
+      // Reject stale continuation from superseded connection
+      if ((this._gen || 0) !== gen) return;
       netSend({ type: 'JOIN_ROOM', roomCode: code, name: name });
-    }).catch(() => toast(t('e_net')));
+    }).catch(() => {
+      if ((this._gen || 0) === gen) toast(t('e_net'));
+    });
   },
 
   setReady(ready) {

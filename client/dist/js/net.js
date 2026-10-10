@@ -42,6 +42,11 @@ function netConnect(handlers) {
       return;
     }
     ws.onopen = () => {
+      if (myGen !== netGen) {
+        // Stale connection: reject so continuations don't run
+        reject(new Error('stale-connection'));
+        return;
+      }
       if (genHandlers.onOpen) genHandlers.onOpen();
       resolve();
     };
@@ -55,6 +60,10 @@ function netConnect(handlers) {
       if (genHandlers.onClose) genHandlers.onClose();
     };
     ws.onerror = () => {
+      if (myGen !== netGen) {
+        reject(new Error('stale-connection'));
+        return;
+      }
       if (genHandlers.onError) genHandlers.onError();
       reject(new Error('ws-error'));
     };
