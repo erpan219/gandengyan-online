@@ -151,24 +151,29 @@ const Online = {
         break;
 
       case 'GAME_STATE':
-        this.revision = msg.view.revision;
-        // Rebuild seatMap from game state (handles bots added at start)
-        if (msg.view.players) {
-          msg.view.players.forEach((p, idx) => {
-            if (!(p.id in this.seatMap)) {
-              this.seatMap[p.id] = idx;
-              if (!this.names[p.id]) this.names[p.id] = 'Player' + (idx + 1);
-            }
-          });
-          // Update mySeat if needed
-          const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
-          if (myIdx >= 0) this.mySeat = myIdx;
+        try {
+          this.revision = msg.view.revision;
+          // Rebuild seatMap from game state (handles bots added at start)
+          if (msg.view.players) {
+            msg.view.players.forEach((p, idx) => {
+              if (!(p.id in this.seatMap)) {
+                this.seatMap[p.id] = idx;
+                if (!this.names[p.id]) this.names[p.id] = 'Player' + (idx + 1);
+              }
+            });
+            // Update mySeat if needed
+            const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
+            if (myIdx >= 0) this.mySeat = myIdx;
+          }
+          const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
+          App.view = view;
+          App.role = 'online';
+          showScreen('screen-game');
+          renderGame();
+        } catch (e) {
+          console.error('[GAME_STATE] Failed:', e);
+          this.toast('Game start failed: ' + (e.message || e));
         }
-        const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
-        App.view = view;
-        App.role = 'online';
-        showScreen('screen-game');
-        renderGame();
         break;
 
       case 'CHAT_MSG':
