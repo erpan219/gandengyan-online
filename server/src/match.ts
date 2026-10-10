@@ -65,8 +65,9 @@ export class Match {
     this.state = newHand(seatIds, this.room.playerCount, handNumber, leader, shuffled, startSeatIndex);
     this.handNumber = handNumber;
     this.room.phase = 'PLAYING';
-    this.broadcastViews();
+    // IMPORTANT: broadcast room first so clients update seatMap before GAME_STATE
     this.broadcastRoom();
+    this.broadcastViews();
     this.scheduleTurn();
   }
 

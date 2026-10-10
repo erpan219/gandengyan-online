@@ -49,7 +49,9 @@ function srvViewToUi(srvView, seatMap, mySeatIdx, names) {
     const lp = srvView.lastPlay;
     const seatIdx = seatMap[lp.playerId];
     const cards = lp.combination.cardIds.map(srvCardToUi);
-    players[seatIdx].lastPlay = { cards, pass: false };
+    if (seatIdx != null && players[seatIdx]) {
+      players[seatIdx].lastPlay = { cards, pass: false };
+    }
     trick = {
       combo: {
         type: lp.combination.kind.toLowerCase(),
@@ -150,6 +152,18 @@ const Online = {
 
       case 'GAME_STATE':
         this.revision = msg.view.revision;
+        // Rebuild seatMap from game state (handles bots added at start)
+        if (msg.view.players) {
+          msg.view.players.forEach((p, idx) => {
+            if (!(p.id in this.seatMap)) {
+              this.seatMap[p.id] = idx;
+              if (!this.names[p.id]) this.names[p.id] = 'Player' + (idx + 1);
+            }
+          });
+          // Update mySeat if needed
+          const myIdx = msg.view.players.findIndex(p => p.id === msg.view.selfId);
+          if (myIdx >= 0) this.mySeat = myIdx;
+        }
         const view = srvViewToUi(msg.view, this.seatMap, this.mySeat, this.names);
         App.view = view;
         App.role = 'online';
