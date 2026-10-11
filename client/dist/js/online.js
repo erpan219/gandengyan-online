@@ -264,6 +264,12 @@ const Online = {
         break;
 
       case 'ERROR':
+        // Terminal join errors must release the Join button so the user can
+        // correct the code and retry. Other protocol errors leave it alone.
+        if (typeof App !== 'undefined' && App._joinPending &&
+            ['ROOM_NOT_FOUND', 'ROOM_FULL', 'SERVER_ERROR'].includes(msg.code)) {
+          if (typeof clearJoinTimer === 'function') clearJoinTimer();
+        }
         toast(msg.message || 'Error');
         break;
 
@@ -311,7 +317,10 @@ const Online = {
       netSend({ type: 'JOIN_ROOM', roomCode: code, name: name });
     }).catch((err) => {
       if (err && err.message === 'stale-connection') return;
-      if ((this._gen || 0) === gen) toast(t('e_net'));
+      if ((this._gen || 0) === gen) {
+        if (typeof clearJoinTimer === 'function') clearJoinTimer();
+        toast(t('e_net'));
+      }
     });
   },
 

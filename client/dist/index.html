@@ -33,7 +33,7 @@
   </header>
 
   <div class="panel">
-    <label class="field-label" id="t-name"></label>
+    <label class="field-label" id="t-name" for="inp-name"></label>
     <input id="inp-name" maxlength="12" autocomplete="off">
 
     <label class="field-label" id="t-mode"></label>
@@ -62,7 +62,7 @@
   </div>
 
   <div class="panel join-panel">
-    <label class="field-label" id="t-join"></label>
+    <label class="field-label" id="t-join" for="inp-code"></label>
     <div class="join-row">
       <input id="inp-code" maxlength="6" autocomplete="off" autocapitalize="characters">
       <button id="btn-join" class="primary"></button>
@@ -119,7 +119,7 @@
 </section>
 
 <!-- ===================== HELP ===================== -->
-<div id="help-modal" class="hidden">
+<div id="help-modal" class="hidden" aria-labelledby="t-help-title">
   <div class="help-box">
     <div class="help-head"><h2 id="t-help-title"></h2><button id="btn-help-close" class="ghost small">✕</button></div>
     <div id="help-body"></div>
@@ -132,7 +132,7 @@
 <script src="js/gdy-engine.js?v20261009e"></script>
 <script src="js/game.js?v20261009e"></script>
 <script src="js/net.js"></script>
-<script src="js/online.js?v=20261010a"></script>
-<script src="js/ui.js?v20261010e"></script>
+<script src="js/online.js?v=20261010b"></script>
+<script src="js/ui.js?v20261010f"></script>
 </body>
 </html>

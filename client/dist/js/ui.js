@@ -317,6 +317,7 @@ function dispatchAct(seat, kind, data, onErr) {
 /* ---------------- online (WebSocket) plumbing ---------------- */
 
 function setJoinBusy(busy) {
+  App._joinPending = busy;
   const btn = $('#btn-join');
   btn.disabled = busy;
   btn.textContent = busy ? t('connecting') : t('b_join');
@@ -1139,6 +1140,7 @@ function confirmExit() {
 }
 
 function goHome() {
+  clearJoinTimer();
   const wasOnline = App.role === 'online';
   App._netSession = (App._netSession || 0) + 1;
   if (App.game) { App.game.stop(); App.game = null; }
