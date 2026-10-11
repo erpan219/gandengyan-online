@@ -56,3 +56,21 @@ test('help dialog has a programmatic accessible title', async ({ app }, testInfo
   await app.page.locator('#btn-help').click();
   await expect(app.page.getByRole('dialog')).toHaveAccessibleName('How to play', { timeout: 2_000 });
 });
+
+test('icon-only controls expose accessible names', async ({ app }) => {
+  // PR6 targeted a11y: every icon-only button needs a programmatic name.
+  // The fixture sets ddz_lang=en, so assert the English labels.
+  await expect(app.page.locator('#btn-bgm')).toHaveAccessibleName('Background music');
+  await expect(app.page.locator('#btn-snd')).toHaveAccessibleName('Sound effects');
+  // Help-close lives inside the hidden help modal: open it first so the
+  // accessible name computes.
+  await app.page.locator('#btn-help').click();
+  await expect(app.page.locator('#btn-help-close')).toHaveAccessibleName('Close');
+  await app.page.locator('#btn-help-close').click();
+  // Chat and exit-game buttons live on the game screen: enter practice.
+  // (#btn-chat is display:none in practice/local mode — chat is online-only —
+  // so assert its programmatic label via attribute, not computed name.)
+  await app.practice();
+  await expect(app.page.locator('#btn-chat')).toHaveAttribute('aria-label', 'Chat');
+  await expect(app.page.locator('#btn-exit-game')).toHaveAccessibleName('Exit game');
+});
