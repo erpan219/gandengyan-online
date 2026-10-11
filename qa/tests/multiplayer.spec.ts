@@ -93,8 +93,9 @@ test('quick chat reaches a peer as visible text without mutating the game', asyn
   await expect(sender.page.locator('#chat-pop')).toBeHidden();
 });
 
-test('complete a real hand, verify settlement rows and start a winner-led rematch @key-flow', async ({ createPlayers }) => {
-  test.setTimeout(120_000);
+test('complete a real hand, verify settlement rows and start a winner-led rematch @key-flow', async ({ createPlayers }, testInfo) => {
+  // WebKit needs a larger budget for a full 170-action hand (see config).
+  test.setTimeout(testInfo.project.name.includes('webkit') ? 240_000 : 120_000);
   const players = await createPlayers(3);
   await startHumanRoom(players);
   const host = players[0].app;

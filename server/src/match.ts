@@ -98,6 +98,7 @@ export class Match {
     this.sendTo(playerId, {
       type: 'GAME_STATE',
       revision: this.room.revision,
+      gameId: state.gameId,
       view: getPlayerView(state, playerId),
       handNumber: this.handNumber,
       previousWinnerId: this.previousWinnerId,
@@ -120,6 +121,7 @@ export class Match {
       this.sendTo(playerId, {
         type: "GAME_STATE",
         revision: this.room.revision,
+        gameId: state.gameId,
         view: getPlayerView(state, playerId),
         handNumber: this.handNumber,
         previousWinnerId: this.previousWinnerId,
@@ -318,6 +320,7 @@ export class Match {
       this.previousWinnerId =
         this.state.finishOrder[0] ?? null;
       this.room.phase = "RESULTS";
+      this.electHostIfNeeded();
       this.calculateScores();
     }
 
@@ -329,6 +332,24 @@ export class Match {
 
   /** Per-hand scores for the just-finished hand (for result display). */
   private handScores: Record<string, number> = {};
+
+  /**
+   * R7: when a hand ends, the host may be disconnected (PLAYING disconnects
+   * don't transfer host). Elect a connected human so the remaining players
+   * can start the next hand. Never steals host from a valid connected host;
+   * the disconnected player keeps seat/token/scores and can reclaim via
+   * HELLO when no valid host exists.
+   */
+  private electHostIfNeeded(): void {
+    const host = this.room.getSeat(this.room.hostId);
+    const hostOk = !!host && !host.isBot &&
+      !host.playerId.startsWith('empty:') && host.connected;
+    if (hostOk) return;
+    const next = this.room.seats.find(
+      (s) => !s.isBot && !s.playerId.startsWith('empty:') && s.connected
+    );
+    if (next) this.room.hostId = next.playerId;
+  }
 
   /** Calculate cumulative scores when a hand finishes. */
   private calculateScores(): void {

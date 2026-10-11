@@ -13,6 +13,22 @@ export interface Seat {
   lastSeen: number;
 }
 
+/**
+ * Server-issued reconnect tokens are 128-bit hex (32 chars, lowercase from
+ * makeToken). Client-supplied tokens are only ever used to *reclaim* an
+ * existing seat — never installed as new credentials (R4).
+ */
+const TOKEN_RE = /^[0-9a-f]{32}$/i;
+
+export function isValidToken(token: unknown): token is string {
+  return typeof token === 'string' && TOKEN_RE.test(token);
+}
+
+/** Normalize for comparison (stored tokens are lowercase hex). */
+export function normToken(token: string): string {
+  return token.toLowerCase();
+}
+
 export class Room {
   code: string;
   revision: number = 0; // Monotonic counter for message ordering
@@ -61,8 +77,13 @@ export class Room {
   }
 
   addHuman(name: string, token?: string): Seat {
-    if (token) {
-      const existing = this.seats.find((s) => s.token === token);
+    // R4: a supplied token only reclaims an EXISTING seat. Unknown or
+    // malformed tokens are not installed as credentials and do not silently
+    // mint a fresh seat — the caller reports SESSION_EXPIRED instead.
+    if (token !== undefined) {
+      if (!isValidToken(token)) throw new Error('SESSION_EXPIRED');
+      const clean = normToken(token);
+      const existing = this.seats.find((s) => s.token !== '' && normToken(s.token) === clean);
       if (existing) {
         existing.name = name;
         existing.connected = true;
@@ -71,6 +92,7 @@ export class Room {
         this.touch();
         return existing;
       }
+      throw new Error('SESSION_EXPIRED');
     }
 
     const i = this.emptyIndex();
@@ -80,7 +102,7 @@ export class Room {
       playerId: 'p' + randomBytes(4).toString('hex'),
       name,
       isBot: false,
-      token: token || this.makeToken(),
+      token: this.makeToken(),
       ready: true, // Auto-ready on join
       ws: null,
       connected: true,

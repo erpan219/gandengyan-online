@@ -1,4 +1,5 @@
-import { Room, Seat } from './rooms.js';
+import { Room, Seat, normToken } from './rooms.js';
+import { isValidToken } from './rooms.js';
 import { randomBytes } from 'node:crypto';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -36,8 +37,10 @@ export class RoomManager {
   }
 
   findByToken(token: string): { room: Room; seat: Seat } | undefined {
+    if (!isValidToken(token)) return undefined;
+    const clean = normToken(token);
     for (const room of this.rooms.values()) {
-      const seat = room.seats.find((s) => s.token === token && token !== '');
+      const seat = room.seats.find((s) => s.token !== '' && normToken(s.token) === clean);
       if (seat) return { room, seat };
     }
     return undefined;

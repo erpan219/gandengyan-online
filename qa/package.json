@@ -12,11 +12,13 @@
     "test:acceptance": "playwright test",
     "typecheck": "tsc --noEmit",
     "report": "playwright show-report",
-    "test:baseline": "playwright test --grep-invert @known-issue"
+    "test:baseline": "playwright test --grep-invert @known-issue",
+    "test:host-election": "node --test scripts/r7-host-election.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
     "@types/node": "22.18.10",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "ws": "^8.22.0"
   }
 }

@@ -135,6 +135,7 @@ const Online = {
   roomCode: null,
   lastRevision: -1,  // For stale message rejection (architectural fix)
   revisionRoom: null, // Room code this revision belongs to (scope fix)
+  gameId: null,       // Current hand identity (R6: echoed with PLAY/PASS)
   onlineScreen: 'HOME', // Explicit screen state: HOME|LOBBY|PLAYING|RESULTS
   playerId: null,
   token: null,
@@ -221,6 +222,8 @@ const Online = {
       case 'GAME_STATE':
         try {
           this.revision = msg.view.revision;
+          // R6: track hand identity so PLAY/PASS can be validated server-side
+          if (typeof msg.gameId === 'string') this.gameId = msg.gameId;
           // Rebuild seatMap from game state on every update.
           // The players array is in seatOrder, so index == seat.
           // Must rebuild (not just add missing) because stale mappings
@@ -335,11 +338,11 @@ const Online = {
   },
 
   playCards(cardIds) {
-    netSend({ type: 'PLAY_CARDS', cardIds: cardIds, expectedRevision: this.revision });
+    netSend({ type: 'PLAY_CARDS', cardIds: cardIds, expectedRevision: this.revision, gameId: this.gameId });
   },
 
   pass() {
-    netSend({ type: 'PASS', expectedRevision: this.revision });
+    netSend({ type: 'PASS', expectedRevision: this.revision, gameId: this.gameId });
   },
 
   chat(text) {

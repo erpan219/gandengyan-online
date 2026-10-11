@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { join, extname, normalize, sep } from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { RoomManager } from './rooms_manager.js';
+import { isValidToken } from './rooms.js';
 import { attachMatch, Match } from './match.js';
 import type { ClientMsg, ServerMsg } from './protocol.js';
 import type { Seat } from './rooms.js';
@@ -216,6 +217,29 @@ function currentMatch(room: Room | undefined): Match | null {
   return (room?.game as Match | null) ?? null;
 }
 
+/**
+ * R6: validate hand identity before applying a network action. PLAY/PASS
+ * carry the gameId the client saw in GAME_STATE; a mismatch means the command
+ * belongs to a previous hand and must be rejected without touching state.
+ * A missing gameId means an outdated client — tell it to refresh instead of
+ * silently applying a possibly-stale command.
+ */
+function checkGameId(ws: WebSocket, room: Room | undefined, gameId: unknown): boolean {
+  const current = currentMatch(room)?.state?.gameId;
+  if (typeof current !== 'string') return true; // no active hand; onAction no-ops
+  if (typeof gameId !== 'string') {
+    send(ws, { type: 'ERROR', code: 'CLIENT_OUTDATED',
+      message: 'Please refresh the page to continue.' });
+    return false;
+  }
+  if (gameId !== current) {
+    send(ws, { type: 'ERROR', code: 'STALE_ACTION',
+      message: 'That move was for a previous hand and was ignored.' });
+    return false;
+  }
+  return true;
+}
+
 // Rate limiting: track room creations per IP
 const roomCreationTimes = new Map<string, number[]>();
 
@@ -277,8 +301,12 @@ wss.on('connection', (ws: WebSocket, req) => {
 
     switch (msg.type) {
       case 'HELLO': {
-        if (msg.token !== undefined && typeof msg.token !== 'string') break;
-        if (!msg.token) break;
+        // R4: malformed tokens can never resolve to a session.
+        if (!isValidToken(msg.token)) {
+          send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
+            message: 'Session expired. Please rejoin the room.' });
+          break;
+        }
         const found = manager.findByToken(msg.token);
         if (!found) {
           // Actionable response: the session is gone (expired grace or freed
@@ -286,6 +314,15 @@ wss.on('connection', (ws: WebSocket, req) => {
           send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
             message: 'Session expired. Please rejoin the room.' });
           break;
+        }
+        // R3: one active binding per socket. A bound socket may only re-hello
+        // its own seat (idempotent); anything else is rejected, never rebound.
+        if (seat) {
+          if (found.seat.playerId !== seat.playerId) {
+            send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
+              message: 'Session expired. Please rejoin the room.' });
+            break;
+          }
         }
         seat = found.seat;
         roomCode = found.room.code;
@@ -315,6 +352,13 @@ wss.on('connection', (ws: WebSocket, req) => {
       }
 
       case 'CREATE_ROOM': {
+        // R3: check BEFORE creating — a bound socket must leave first, so a
+        // rejected create can never orphan a new room.
+        if (seat) {
+          send(ws, { type: 'ERROR', code: 'ALREADY_IN_ROOM',
+            message: 'Already in a room. Leave it first.' });
+          break;
+        }
         if (typeof msg.name !== 'string') break;
         if (msg.playerCount !== 3 && msg.playerCount !== 4) break;
         if (typeof msg.fillWithBots !== 'boolean') break;
@@ -337,19 +381,32 @@ wss.on('connection', (ws: WebSocket, req) => {
 
       case 'JOIN_ROOM': {
         if (typeof msg.roomCode !== 'string' || typeof msg.name !== 'string') break;
+        // R4: a supplied token is a reconnect credential. Malformed tokens are
+        // rejected here; unknown-but-wellformed tokens are rejected by
+        // addHuman with SESSION_EXPIRED (never silently mint a new seat).
+        if (msg.token !== undefined && !isValidToken(msg.token)) {
+          send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
+            message: 'Session expired. Please rejoin the room.' });
+          break;
+        }
         const room = manager.getRoom(msg.roomCode);
         if (!room) {
           send(ws, { type: 'ERROR', code: 'ROOM_NOT_FOUND', message: 'Room not found.' });
           break;
         }
-        // Idempotent: if this socket already has a seat in this room (e.g. via HELLO),
-        // don't create a duplicate — just re-welcome the existing seat
-        if (seat && roomCode === room.code && room.getSeat(seat.playerId)) {
-          welcome(seat);
-          broadcastRoom(room);
-          if (room.phase === 'PLAYING' || room.phase === 'RESULTS') {
-            currentMatch(room)?.onReconnect(seat.playerId);
+        // R3: one active binding per socket. Same-seat rejoin is idempotent;
+        // any other existing binding is rejected, never rebound or hopped.
+        if (seat) {
+          if (roomCode === room.code && room.getSeat(seat.playerId)) {
+            welcome(seat);
+            broadcastRoom(room);
+            if (room.phase === 'PLAYING' || room.phase === 'RESULTS') {
+              currentMatch(room)?.onReconnect(seat.playerId);
+            }
+            break;
           }
+          send(ws, { type: 'ERROR', code: 'ALREADY_IN_ROOM',
+            message: 'Already in another session. Leave it first.' });
           break;
         }
         try {
@@ -363,9 +420,13 @@ wss.on('connection', (ws: WebSocket, req) => {
             currentMatch(room)?.onReconnect(joined.playerId);
           }
         } catch (error) {
-          const code = error instanceof Error && error.message === 'ROOM_FULL' ? 'ROOM_FULL' : 'SERVER_ERROR';
+          const errMsg = error instanceof Error ? error.message : '';
+          const code = errMsg === 'ROOM_FULL' ? 'ROOM_FULL'
+            : errMsg === 'SESSION_EXPIRED' ? 'SESSION_EXPIRED' : 'SERVER_ERROR';
           // Don't leak internal error details to client
-          const message = code === 'ROOM_FULL' ? 'Room is full.' : 'Join failed.';
+          const message = code === 'ROOM_FULL' ? 'Room is full.'
+            : code === 'SESSION_EXPIRED' ? 'Session expired. Please rejoin the room.'
+            : 'Join failed.';
           send(ws, { type: 'ERROR', code, message });
         }
         break;
@@ -449,6 +510,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         if (seat.ws !== ws) break;
         if (!Array.isArray(msg.cardIds) || !msg.cardIds.every((c) => typeof c === 'string')) break;
         if (typeof msg.expectedRevision !== 'number') break;
+        if (!checkGameId(ws, currentRoom(), msg.gameId)) break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PLAY', msg.cardIds, msg.expectedRevision);
         break;
       }
@@ -457,12 +519,16 @@ wss.on('connection', (ws: WebSocket, req) => {
         if (!seat) break;
         if (seat.ws !== ws) break;
         if (typeof msg.expectedRevision !== 'number') break;
+        if (!checkGameId(ws, currentRoom(), msg.gameId)) break;
         currentMatch(currentRoom())?.onAction(seat.playerId, 'PASS', [], msg.expectedRevision);
         break;
       }
 
       case 'CHAT': {
         if (!seat) break;
+        // R5: reject commands from replaced sockets (same guard as the other
+        // seat-scoped commands) — a superseded socket must not speak as the player.
+        if (seat.ws !== ws) break;
         if (typeof msg.text !== 'string') break;
         const room = currentRoom();
         if (!room) break;
