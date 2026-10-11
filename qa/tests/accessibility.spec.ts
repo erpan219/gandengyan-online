@@ -45,14 +45,14 @@ test('invalid card combination has a live status explanation and aria-disabled p
   await expect(app.cards).toHaveCount(18);
 });
 
-test('home nickname and room-code inputs have programmatic labels @known-issue', async ({ app }, testInfo) => {
-  testInfo.annotations.push({ type: 'known-issue', description: 'aff6d61: visible field-label elements are missing for/id association; nickname input has no accessible name.' });
+test('home nickname and room-code inputs have programmatic labels', async ({ app }, testInfo) => {
+  testInfo.annotations.push({ type: 'regression', description: 'Fixed 2026-10-11 (f35ce8e): label#t-name now has for="inp-name"; label#t-join now has for="inp-code".' });
   await expect(app.page.locator('#inp-name')).toHaveAccessibleName(/.+/, { timeout: 2_000 });
   await expect(app.page.locator('#inp-code')).toHaveAccessibleName(/.+/, { timeout: 2_000 });
 });
 
-test('help dialog has a programmatic accessible title @known-issue', async ({ app }, testInfo) => {
-  testInfo.annotations.push({ type: 'known-issue', description: 'aff6d61: help modal has role and aria-modal but no aria-labelledby or aria-label.' });
+test('help dialog has a programmatic accessible title', async ({ app }, testInfo) => {
+  testInfo.annotations.push({ type: 'regression', description: 'Fixed 2026-10-11 (f35ce8e): #help-modal now has aria-labelledby="t-help-title".' });
   await app.page.locator('#btn-help').click();
   await expect(app.page.getByRole('dialog')).toHaveAccessibleName('How to play', { timeout: 2_000 });
 });

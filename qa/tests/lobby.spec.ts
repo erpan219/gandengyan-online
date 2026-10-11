@@ -58,8 +58,8 @@ test('unknown six-character room reports the server error without opening a room
   expect(app.wire.latest<RoomFrame>('ROOM_STATE')).toBeUndefined();
 });
 
-test('failed join re-enables Join for correction @known-issue', async ({ app }, testInfo) => {
-  testInfo.annotations.push({ type: 'known-issue', description: 'aff6d61: ERROR only toasts; setJoinBusy(false) is not called on ROOM_NOT_FOUND.' });
+test('failed join re-enables Join for correction', async ({ app }, testInfo) => {
+  testInfo.annotations.push({ type: 'regression', description: 'Fixed 2026-10-11 (f35ce8e): terminal join errors (ROOM_NOT_FOUND/ROOM_FULL/SERVER_ERROR) and connect failures now clear the pending-join state via clearJoinTimer().' });
   await app.page.locator('#inp-code').fill('ZZZZZZ');
   await app.page.locator('#btn-join').click();
   await app.wire.waitFor('ERROR', frame => frame.code === 'ROOM_NOT_FOUND');

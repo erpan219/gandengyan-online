@@ -65,3 +65,20 @@ npm run test:acceptance -- --project=chromium-desktop --grep @known-issue
 ```
 
 Screenshots, traces, protocol diagnostics and key-flow videos are produced by the configured reporters/fixtures. The source pack excludes temporary runner output and session traces; running the pack generates fresh evidence for the user's build.
+
+## 2026-10-11 UTC re-validation — three acceptance defects fixed
+
+**Application source:** `f35ce8eab45b373670e786083c57438ad91e6e71` from https://github.com/erpan219/gandengyan-online. Verified in a disposable Linux workspace against a local server and the tracked `client/dist`.
+
+| Layer | Result |
+|---|---|
+| QA TypeScript check | Passed `npm run typecheck` |
+| Shared engine, real Match scoring and shipped browser-engine parity | 742 passed, 0 failed; 13.7s |
+| Chromium 141.0.7390.37 desktop — full suite (baseline + formerly failing) | 30 passed, 0 failed/skipped/flaky |
+| Focused rerun of the three formerly failing strict assertions | 3 passed |
+
+- QA-LOBBY-001 (failed Join re-enables for correction): fixed — terminal join errors (`ROOM_NOT_FOUND`/`ROOM_FULL`/`SERVER_ERROR`) and connect failures clear the pending-join state.
+- QA-A11Y-001 (nickname/room-code programmatic labels): fixed — `for` associations added.
+- QA-A11Y-002 (help dialog accessible title): fixed — `aria-labelledby="t-help-title"` added.
+
+The three tests are kept as regression tests; their obsolete `@known-issue` tag was removed on this date. The sections above describing the original failures are retained as history.
