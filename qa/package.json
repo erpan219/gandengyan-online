@@ -1,0 +1,22 @@
+{
+  "name": "gandengyan-qa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:engine": "playwright test --project=engine",
+    "test:chromium": "playwright test --project=chromium-desktop",
+    "test:browsers": "playwright test --project=chromium-desktop --project=firefox-desktop --project=webkit-desktop",
+    "test:devices": "playwright test --project=mobile-chromium --project=mobile-webkit --project=tablet-webkit",
+    "test:acceptance": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report",
+    "test:baseline": "playwright test --grep-invert @known-issue"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.18.10",
+    "typescript": "5.9.3"
+  }
+}

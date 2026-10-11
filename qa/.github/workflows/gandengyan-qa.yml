@@ -1,0 +1,47 @@
+name: Gandengyan QA
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [engine, chromium-desktop, firefox-desktop, webkit-desktop, mobile-chromium, mobile-webkit, tablet-webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: qa/package-lock.json
+      - name: Install and build actual application server
+        run: npm install --ignore-scripts && npm run build
+      - name: Install pinned QA dependencies
+        working-directory: qa
+        run: npm ci
+      - name: Install browsers and Linux dependencies
+        if: matrix.project != 'engine'
+        working-directory: qa
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Typecheck QA
+        working-directory: qa
+        run: npm run typecheck
+      - name: Run isolated local tests
+        working-directory: qa
+        run: npx playwright test --project=${{ matrix.project }}
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-${{ matrix.project }}
+          path: |
+            qa/playwright-report/
+            qa/test-results/
+          retention-days: 14
