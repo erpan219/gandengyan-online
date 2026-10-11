@@ -12,60 +12,13 @@
    - No kickers, no wildcards
 */
 
-const GDY_SUITS = ['S', 'H', 'C', 'D'];
-const GDY_RANKS = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', '3'];
-const GDY_STRENGTH = {
-  '4': 0, '5': 1, '6': 2, '7': 3, '8': 4, '9': 5, '10': 6,
-  'J': 7, 'Q': 8, 'K': 9, 'A': 10, '2': 11, '3': 12,
-  'SJ': 13, 'BJ': 14,
-};
 const GDY_SEQ_RANKS = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const GDY_CARD_RE = /^[SHCD]-(4|5|6|7|8|9|10|J|Q|K|A|2|3)$/;
 
-/* Card: { id, rank, suit } — id like 'S-4', 'H-10', 'SJ', 'BJ' */
-function gdyCreateDeck() {
-  const deck = [];
-  for (const suit of GDY_SUITS) {
-    for (const rank of GDY_RANKS) {
-      deck.push({ id: `${suit}-${rank}`, rank, suit });
-    }
-  }
-  deck.push({ id: 'SJ', rank: 'SJ', suit: null });
-  deck.push({ id: 'BJ', rank: 'BJ', suit: null });
-  return deck;
-}
+/* NOTE (PR5 module 1): deck functions (gdyCreateDeck/gdyCardRank/gdyRankStrength/
+   gdyShuffle/gdyBarelyShuffle) were removed here; they now come from shared/deck.ts
+   via js/gdy-shared-deck.js (loaded before this file). */
 
-function gdyCardRank(id) {
-  if (id === 'SJ' || id === 'BJ') return id;
-  return id.slice(2);
-}
-
-function gdyRankStrength(rank) {
-  return GDY_STRENGTH[rank];
-}
-
-function gdyShuffle(arr, rand) {
-  rand = rand || Math.random;
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/* Barely shuffle: few swaps, ranks stay clumped → bombs everywhere */
-function gdyBarelyShuffle(arr, rand) {
-  rand = rand || Math.random;
-  const a = arr.slice();
-  const swaps = 8 + Math.floor(rand() * 5);
-  for (let k = 0; k < swaps; k++) {
-    const i = Math.floor(rand() * a.length);
-    const j = Math.floor(rand() * a.length);
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 function gdyBombTier(kind) {
   switch (kind) {

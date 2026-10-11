@@ -416,4 +416,21 @@ test.describe('Shipped browser engine agrees with independent rule goldens', () 
       expect(classifyHand(hint!, 3)).toEqual({ ok: true, combination: legal });
     }
   });
+
+  test('UI-NORMALIZER-001: shipped uiKindToGdy tolerates both bomb spellings', async () => {
+    const { loadUiKindToGdy } = await import('../helpers/engine-client.js');
+    const uiKindToGdy = loadUiKindToGdy();
+    // Ported from qa-regression/bomb-kind-repro.mjs (retired): the GDY-UI-BOMB-01
+    // normalizer contract — adapters may emit either spelling.
+    const cases: Array<[unknown, string]> = [
+      ['single', 'SINGLE'], ['pair', 'PAIR'], ['straight', 'STRAIGHT'], ['pair_run', 'PAIR_RUN'],
+      ['triplebomb', 'TRIPLE_BOMB'], ['triple_bomb', 'TRIPLE_BOMB'],
+      ['fourbomb', 'FOUR_BOMB'], ['four_bomb', 'FOUR_BOMB'], ['rocket', 'ROCKET'],
+      ['SINGLE', 'SINGLE'], ['TripleBomb', 'TRIPLE_BOMB'], // case-insensitive
+      ['nonsense', 'SINGLE'], [undefined, 'SINGLE'], // unknown falls back to SINGLE
+    ];
+    for (const [input, expected] of cases) {
+      expect(uiKindToGdy(input)).toBe(expected);
+    }
+  });
 });
