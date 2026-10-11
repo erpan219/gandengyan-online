@@ -1,4 +1,5 @@
 import { test, expect, startHumanRoom } from '../fixtures/browser';
+import type { BrowserPlayer } from '../fixtures/browser';
 import type { GameFrame } from '../helpers/browser-protocol';
 
 for (const count of [3, 4] as const) {
@@ -93,11 +94,18 @@ test('quick chat reaches a peer as visible text without mutating the game', asyn
   await expect(sender.page.locator('#chat-pop')).toBeHidden();
 });
 
-test('complete a real hand, verify settlement rows and start a winner-led rematch @key-flow', async ({ createPlayers }, testInfo) => {
-  // WebKit needs a larger budget for a full 170-action hand (see config).
-  test.setTimeout(testInfo.project.name.includes('webkit') ? 300_000 : 120_000);
-  const players = await createPlayers(3);
-  await startHumanRoom(players);
+/**
+ * Play a complete 3-player hand through the UI, verify settlement rows, and
+ * start a winner-led rematch. clickOpts selects the hint/play click mode:
+ * { force: true } skips Playwright's actionability polling for speed (used on
+ * WebKit software rendering, where it costs ~1s per click with zero assertion
+ * value — click mechanics are covered by ui.spec.ts pointer-geometry tests);
+ * {} uses normal clicks end-to-end.
+ */
+async function completeHandAndRematch(
+  players: BrowserPlayer[],
+  clickOpts: { force?: boolean },
+) {
   const host = players[0].app;
   let revision = 0;
   // Every accepted play removes at least one card; each trick permits at most
@@ -111,14 +119,11 @@ test('complete a real hand, verify settlement rows and start a winner-led rematc
     await expect(active.page.locator('#turn-countdown')).toBeVisible();
     const beforeCards = active.wire.game.view.selfHand.length;
     if (await active.hint.isVisible()) {
-      // force: skip Playwright's RAF stability polling — under WebKit software
-      // rendering it costs ~1s per click with zero assertion value here
-      // (click mechanics are covered by ui.spec.ts pointer-geometry tests).
-      await active.hint.click({ force: true });
+      await active.hint.click(clickOpts);
       const selected = await active.hand.locator('.sel').count();
       expect(selected).toBeGreaterThan(0);
       await expect(active.play).not.toHaveAttribute('data-invalid', '1');
-      await active.play.click({ force: true });
+      await active.play.click(clickOpts);
       const accepted = await active.wire.waitFor<GameFrame>('GAME_STATE', frame => frame.view.revision > revision);
       expect(accepted.view.selfHand).toHaveLength(beforeCards - selected);
       revision = accepted.view.revision;
@@ -154,6 +159,27 @@ test('complete a real hand, verify settlement rows and start a winner-led rematc
     await expect(player.app.page.locator('#settle-overlay')).toBeHidden();
     await expect(player.app.cards).toHaveCount(18);
   }
+}
+
+test('complete a real hand, verify settlement rows and start a winner-led rematch @key-flow', async ({ createPlayers }, testInfo) => {
+  // WebKit needs a larger budget for a full 170-action hand (see config).
+  test.setTimeout(testInfo.project.name.includes('webkit') ? 300_000 : 120_000);
+  const players = await createPlayers(3);
+  await startHumanRoom(players);
+  await completeHandAndRematch(players, { force: true });
+});
+
+test('complete a real hand with normal clicks, verify settlement and rematch @key-flow', async ({ createPlayers }, testInfo) => {
+  // The force:true variant above skips actionability checks for speed; this
+  // covers the real click path (hint -> play) through an entire hand plus a
+  // winner-led rematch. WebKit software rendering makes 170 normal clicks too
+  // slow for CI, so this runs on Chromium projects only (basic normal-click
+  // coverage on WebKit already exists).
+  test.skip(testInfo.project.name.includes('webkit'), 'normal-click full hand is Chromium-only; WebKit uses the force:true variant');
+  test.setTimeout(180_000);
+  const players = await createPlayers(3);
+  await startHumanRoom(players);
+  await completeHandAndRematch(players, {});
 });
 
 test('two guests racing for the last seat produce exactly one join and one ROOM_FULL', async ({ createPlayers }) => {
