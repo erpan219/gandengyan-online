@@ -59,7 +59,13 @@ export const test = serverTest.extend<BrowserFixtures>({
         const options: BrowserContextOptions = {
           ...contextOptions, baseURL: appServer, viewport, isMobile, hasTouch,
           deviceScaleFactor, userAgent, locale, colorScheme,
-          recordVideo: { dir: testInfo.outputPath(`player-${all.length + 1}-video`) },
+          // CDP screencast video is ~37% overhead even in Chromium and far worse
+          // under WebKit software rendering (full CPU composite per frame); it
+          // pushed the full-hand test past its CI budget. Screenshots + protocol
+          // attachments still cover WebKit failure diagnostics.
+          ...(testInfo.project.name.includes('webkit')
+            ? {}
+            : { recordVideo: { dir: testInfo.outputPath(`player-${all.length + 1}-video`) } }),
         };
         const context = await browser.newContext(options);
         await prepareContext(context);
