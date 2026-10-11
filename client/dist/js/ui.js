@@ -129,7 +129,6 @@ function applyStaticTexts() {
   set('#t-olaizi', 'o_laizi'); set('#t-olaizi-d', 'o_laizi_d');
   set('#t-onoshuffle', 'o_noshuffle'); set('#t-onoshuffle-d', 'o_noshuffle_d');
   set('#t-odoubling', 'o_doubling'); set('#t-odoubling-d', 'o_doubling_d');
-  set('#t-obase', 'o_base');
   set('#t-bcreate', 'b_create'); set('#t-bcreate-d', 'b_create_d');
   set('#t-bpractice', 'b_practice'); set('#t-bpractice-d', 'b_practice_d');
   set('#t-join', 'h_join'); set('#t-rcode', 'r_code');
@@ -161,7 +160,6 @@ function cfgFromForm() {
     laizi: false,
     noShuffle: $('#opt-noshuffle').checked,
     doubling: false,
-    base: +$('#sel-base').value,
   };
 }
 

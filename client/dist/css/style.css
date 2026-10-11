@@ -69,8 +69,6 @@ input:focus { border-color: #f5c04e; }
 .opt span { display: flex; flex-direction: column; }
 .opt b { font-size: 14px; font-weight: 600; }
 .opt i { font-style: normal; font-size: 11px; color: rgba(238,244,238,.55); }
-.opt-base { justify-content: space-between; }
-.opt-base select { padding: 6px 10px; }
 
 .big-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
 .big-btns button {
