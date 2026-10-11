@@ -25,9 +25,9 @@ function playFingerprint(trickSeat, combo) {
 
 
 'use strict';
-/* ui.js — screens, rendering and the host/guest glue.
-   Roles: 'local' (practice, everything in-page), 'host' (runs the Game and
-   pushes per-seat views to the guest), 'guest' (renders views, sends intents). */
+/* ui.js — screens, rendering and game glue.
+   Roles: 'local' (practice, everything in-page) or 'online' (server-driven
+   via WebSocket; see net.js / online.js). */
 
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
@@ -41,15 +41,14 @@ const App = {
   name: '',
   cfg: null,
   game: null,
-  peer: null,
-  conns: {},        // host, in-game: seat -> DataConnection
-  guests: [],       // host, lobby: [{conn, name}] in seat order (seat = idx + 1)
-  guestConn: null,  // guest: connection to host
   code: null,
   started: false,
   view: null,
   selected: new Set(),
   bubbles: {},
+  _invalidReason: '',
+  _lastActor: undefined,
+  _oppDeadline: 0,
 };
 
 /* ---------------- generic helpers ---------------- */
@@ -193,29 +192,8 @@ function myName() {
 
 /* ---------------- room (waiting) screen ---------------- */
 
-function renderRoster(players) {
-  const wrap = $('#room-players');
-  wrap.innerHTML = players.map(p =>
-    `<div class="roster-row"><span class="avatar">${p.ai ? '🤖' : '🧑'}</span>` +
-    `<span>${esc(p.name)}</span>${p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ''}</div>`).join('');
-}
-
 function seatsForMode(mode) { return mode === 'gdy4' ? 4 : 3; }
 function roomCapacity() { return App.cfg ? seatsForMode(App.cfg.mode) : 3; }
-
-function hostRosterPlayers() {
-  const seats = [{ name: App.name, tag: t('r_host') }];
-  for (const g of App.guests) seats.push({ name: g.name });
-  while (seats.length < roomCapacity()) seats.push({ name: t('r_ai'), ai: true });
-  return seats;
-}
-
-function updateRoomScreen() {
-  $('#room-code').textContent = App.code || '';
-  $('#room-status').textContent = App.guests.length >= roomCapacity() - 1 ? '' : t('r_waiting');
-  renderRoster(hostRosterPlayers());
-  $('#btn-start').style.display = App.role === 'host' ? '' : 'none';
-}
 
 /* Online (WebSocket) room screen — driven by server ROOM_STATE */
 function updateRoomScreenOnline(msg) {
@@ -256,67 +234,11 @@ function updateRoomScreenOnline(msg) {
   if (typeof setJoinBusy === 'function') setJoinBusy(false);
 }
 
-function sendRoomInfo() {
-  const players = hostRosterPlayers().map(p => ({ name: p.name, ai: !!p.ai, tag: p.tag || '' }));
-  for (const g of App.guests) {
-    if (g.conn) try { g.conn.send({ t: 'room', code: App.code, players }); } catch (e) { }
-  }
-}
-
-/* ---------------- liveness (heartbeat) ----------------
-   WebRTC close events are unreliable when a tab is killed or a phone is
-   locked, so both sides ping every 5s; 40s of silence means gone. */
-
-const HEARTBEAT_MS = 5000;
-const PEER_TIMEOUT_MS = 40000;
-
-function startHeartbeat() {
-  stopHeartbeat();
-  App._hb = setInterval(() => {
-    const now = Date.now();
-    if (App.role === 'host') {
-      for (const g of App.guests.slice()) {
-        if (!g.conn) continue;
-        try { g.conn.send({ t: 'ping' }); } catch (e) { }
-        if (g.lastSeen && now - g.lastSeen > PEER_TIMEOUT_MS) {
-          const conn = g.conn;
-          try { conn.close(); } catch (e) { }
-          hostOnGuestGone(conn);
-        }
-      }
-    } else if (App.role === 'guest' && App.guestConn) {
-      try { App.guestConn.send({ t: 'ping' }); } catch (e) { }
-      if (App._hostSeen && now - App._hostSeen > PEER_TIMEOUT_MS) {
-        toast(t('e_hostleft'));
-        goHome();
-      }
-    }
-  }, HEARTBEAT_MS);
-}
-
-function stopHeartbeat() {
-  if (App._hb) { clearInterval(App._hb); App._hb = null; }
-}
-
-function sendBye() {
-  try {
-    if (App.role === 'guest' && App.guestConn) App.guestConn.send({ t: 'bye' });
-    if (App.role === 'host') for (const g of App.guests) { if (g.conn) g.conn.send({ t: 'bye' }); }
-  } catch (e) { }
-}
-
-/* ---------------- host / local game plumbing ---------------- */
-
-function sendAll(msg) {
-  for (const conn of Object.values(App.conns)) { try { conn.send(msg); } catch (e) { } }
-}
+/* ---------------- local game plumbing ---------------- */
 
 function pushViews() {
   const g = App.game;
   if (!g) return;
-  for (const [seat, conn] of Object.entries(App.conns)) {
-    try { conn.send({ t: 'view', v: g.buildView(+seat) }); } catch (e) { }
-  }
   App.view = g.buildView(0);
   renderGame();
 }
@@ -328,7 +250,7 @@ function newGame(players) {
   App.game = new Game(Object.assign({}, App.cfg, { players, playerCount: seatsForMode(App.cfg.mode) }), {
     onUpdate: () => pushViews(),
     onEvent: (ev) => {
-      if (ev === 'redeal') { toast(t('e_redeal')); sendAll({ t: 'toastc', code: 'e_redeal' }); }
+      if (ev === 'redeal') { toast(t('e_redeal')); }
     },
     onError: (e) => console.error(e),
   });
@@ -368,77 +290,14 @@ function createRoom(attempt) {
   App._roomPending = true;
 }
 
-function seatOfConn(conn) {
-  const idx = App.guests.findIndex(g => g.conn === conn);
-  return idx < 0 ? -1 : idx + 1;
-}
-
-function hostAcceptConn(conn) {
-  if (App.started || App.guests.length >= roomCapacity() - 1) {
-    try { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 200); } catch (e) { }
-    return;
-  }
-  conn.on('data', d => hostOnData(conn, d));
-  conn.on('close', () => hostOnGuestGone(conn));
-}
-
-function hostOnData(conn, d) {
-  if (!d || typeof d !== 'object') return;
-  const known = App.guests.find(g => g.conn === conn);
-  if (known) known.lastSeen = Date.now();
-  if (d.t === 'ping') return;
-  if (d.t === 'bye') { if (known) { try { conn.close(); } catch (e) { } hostOnGuestGone(conn); } return; }
-  if (d.t === 'hello') {
-    if (seatOfConn(conn) >= 0) return;
-    if (App.started || App.guests.length >= roomCapacity() - 1) {
-      try { conn.send({ t: 'full' }); } catch (e) { }
-      return;
-    }
-    App.guests.push({ conn, name: String(d.name || 'Guest').slice(0, 12), lastSeen: Date.now() });
-    updateRoomScreen();
-    sendRoomInfo();
-    return;
-  }
-  if (d.t === 'act' && App.started) {
-    const seat = seatOfConn(conn);
-    if (seat < 0) return;
-    dispatchAct(seat, d.kind, d.data, () => { try { conn.send({ t: 'err', code: 'e_invalid' }); } catch (e) { } });
-  }
-}
-
-function hostOnGuestGone(conn) {
-  const idx = App.guests.findIndex(g => g.conn === conn);
-  if (idx < 0) return;
-  if (App.started && App.game && App.game.state !== 'idle') {
-    // Keep the seat (order defines seats); let an AI take over.
-    const seat = idx + 1;
-    App.guests[idx].conn = null;
-    delete App.conns[seat];
-    const nm = App.game.players[seat].name;
-    App.game.players[seat].isAI = true;
-    toast(t('e_disconnected', nm));
-    sendAll({ t: 'toastc', code: 'e_disconnected', arg: nm });
-    App.game.pump();
-    pushViews();
-  } else {
-    const nm = App.guests[idx].name;
-    App.guests.splice(idx, 1);
-    toast(t('e_left', nm));
-    updateRoomScreen();
-    sendRoomInfo();
-  }
-}
-
 function hostStartGame() {
   if (App.role === 'online') {
     Online.startGame();
     return;
   }
+  // Local practice: me + AI fill.
   const players = [{ name: App.name }];
-  for (const g of App.guests) players.push({ name: g.name });
-  (() => { const used2 = players.map(p => p.name); while (players.length < roomCapacity()) players.push({ name: randomAIName(used2), isAI: true }); })();
-  App.conns = {};
-  App.guests.forEach((g, i) => { if (g.conn) App.conns[i + 1] = g.conn; });
+  (() => { const used = players.map(p => p.name); while (players.length < roomCapacity()) players.push({ name: randomAIName(used), isAI: true }); })();
   newGame(players);
 }
 
@@ -452,16 +311,10 @@ function dispatchAct(seat, kind, data, onErr) {
   else if (kind === 'play') ok = g.actPlay(seat, Array.isArray(data.ids) ? data.ids : []);
   else if (kind === 'pass') ok = g.actPass(seat);
   else if (kind === 'again') { if (g.nextRound) g.nextRound(); }
-  else if (kind === 'chat') hostChat(seat, data.id | 0);
   if (!ok && onErr) onErr();
 }
 
-function hostChat(seat, id) {
-  sendAll({ t: 'chat', seat, id });
-  showBubble(seat, t('chat')[id] || '');
-}
-
-/* ---------------- guest plumbing ---------------- */
+/* ---------------- online (WebSocket) plumbing ---------------- */
 
 function setJoinBusy(busy) {
   const btn = $('#btn-join');
@@ -488,30 +341,6 @@ function joinRoom() {
 
 /* ---------------- network diagnostics ---------------- */
 
-
-function guestOnData(d) {
-  if (!d || typeof d !== 'object') return;
-  App._hostSeen = Date.now();
-  if (d.t === 'ping') return;
-  if (d.t === 'bye') { toast(t('e_hostleft')); goHome(); return; }
-  if (d.t === 'room') {
-    $('#room-status').textContent = '';
-    renderRoster(d.players || []);
-  } else if (d.t === 'view') {
-    App.started = true;
-    App.view = d.v;
-    if (!$('#screen-game').classList.contains('active')) showScreen('screen-game');
-    renderGame();
-  } else if (d.t === 'chat') {
-    if (d.seat !== App.view?.mySeat) showBubble(d.seat, t('chat')[d.id] || '');
-  } else if (d.t === 'err' || d.t === 'toastc') {
-    toast(t(d.code || 'e_invalid', d.arg !== undefined ? d.arg : ''));
-  } else if (d.t === 'full') {
-    toast(t('e_full'));
-    goHome();
-  }
-}
-
 /* ---------------- shared action entry ---------------- */
 
 function act(kind, data) {
@@ -532,12 +361,7 @@ function act(kind, data) {
     }
     return;
   }
-  if (App.role === 'guest') {
-    if (App.guestConn) App.guestConn.send({ t: 'act', kind, data });
-    if (kind === 'chat') showBubble(App.view ? App.view.mySeat : 1, t('chat')[data.id] || '');
-    return;
-  }
-  if (kind === 'chat' && App.role === 'local') { showBubble(0, t('chat')[data.id] || ''); return; }
+  if (App.role === 'local' && kind === 'chat') { showBubble(0, t('chat')[data.id] || ''); return; }
   dispatchAct(0, kind, data, () => {
     toast(t('e_invalid'));
     Snd.invalid();
@@ -559,42 +383,37 @@ function seatSides(v) {
   return { left: (v.mySeat + 2) % 3, right: (v.mySeat + 1) % 3, top: null };
 }
 
-function playAreaHTML(v, seat) {
-  const p = v.players[seat];
-  if (v.state === 'bidding') {
-    if (p.bid === null || p.bid === undefined) return '';
-    return `<span class="say">${p.bid === 0 ? t('bid0') : t('bidN', p.bid)}</span>`;
-  }
-  if (v.state === 'doubling') {
-    if (p.dbl === null || p.dbl === undefined) return '';
-    return `<span class="say">${p.dbl ? t('dblY') : t('dblN')}</span>`;
-  }
-  const lp = p.lastPlay;
-  if (!lp) return '';
-  if (lp.pass) return `<span class="say pass">${t('pass_txt')}</span>`;
-  const cards = lp.cards.slice().sort((a, b) => b.r - a.r);
-  return `<div class="mini-cards">${cards.map(c => cardHTML(c, 'mini', v.laizi)).join('')}</div>` +
-    `<span class="combo-tag">${comboName(lp.combo)}</span>`;
-}
-
 function seatBadge(v, p) {
   if (p.landlord) return `<span class="badge lord">👑 ${t('g_landlord')}</span>`;
   if (p.ally) return `<span class="badge ally">🤝 ${t('g_ally')}</span>`;
   return v.landlord != null ? `<span class="badge">${t('g_farmer')}</span>` : '';
 }
 
+/* Glanceable opponent panel: avatar, name, card-count ring, score, live
+   turn timer, and a badge of the player's last play. */
 function oppPanelHTML(v, seat) {
   const p = v.players[seat];
   const isTurn = v.actor === seat && (v.state === 'bidding' || v.state === 'doubling' || v.state === 'playing');
   const badge = seatBadge(v, p);
   const settleHand = p.hand && v.state === 'settle'
     ? `<div class="mini-cards reveal">${p.hand.map(c => cardHTML(c, 'mini', v.laizi)).join('')}</div>` : '';
+  // Last-play badge: the dominant combo if this seat made it, else pass.
+  let playBadge = '';
+  if (v.trick && v.trick.seat === seat && v.trick.combo) {
+    playBadge = `<span class="chip combo">${esc(comboName(v.trick.combo))}</span>`;
+  } else if (p.lastPlay && p.lastPlay.pass) {
+    playBadge = `<span class="chip dim">${esc(t('pass_txt'))}</span>`;
+  }
+  const turnChip = isTurn
+    ? `<span class="chip timer" data-opp-timer>30</span>${thinkingDotsHTML()}` : '';
   return `<div class="opp ${isTurn ? 'turn' : ''}" data-seat="${seat}">
     <div class="opp-head">
       <span class="avatar">${p.isAI ? avatarForName(p.name) : '🧑'}</span>
       <div class="opp-names">
         <div class="pname">${esc(p.name)}${p.isAI ? ` <span class="tag">${t('ai_tag')}</span>` : ''} ${badge}</div>
-        <div class="pmeta">${t('score_pts', p.score)} · ${t('cards_left', p.cardCount)}</div>
+        <div class="pmeta"><span class="card-count-ring" title="${esc(t('cards_left', p.cardCount))}">${p.cardCount}</span>
+          <span class="pscore">${t('score_pts', p.score)}</span> ${turnChip}</div>
+        ${playBadge ? `<div class="pplay">${playBadge}</div>` : ''}
       </div>
     </div>
     ${settleHand}
@@ -724,9 +543,18 @@ function actionsHTML(v) {
     }
     const preview = combo ? `<span class="combo-preview">${comboName(combo)}</span>` : '';
     const reasonHtml = invalidReason ? `<span class="invalid-reason" role="status">${invalidReason}</span>` : '';
+    App._invalidReason = invalidReason;
+    // Play button: fully enabled when the selection is legal. When cards are
+    // selected but don't form a legal play, the button stays visible-but-dimmed
+    // (aria-disabled, still tappable) so a tap can shake the hand and explain.
+    const playBtn = combo
+      ? `<button class="act-btn primary" data-act="play">${t('b_play')}</button>`
+      : (sel.length
+        ? `<button class="act-btn primary dimmed" data-act="play" data-invalid="1" aria-disabled="true">${t('b_play')}</button>`
+        : `<button class="act-btn primary" data-act="play" disabled>${t('b_play')}</button>`);
     return `${cdHtml}${preview}${reasonHtml}<button class="act-btn" data-act="hint">${t('b_hint')}</button>` +
       `<button class="act-btn" data-act="pass" ${prev ? '' : 'disabled'}>${t('b_pass')}</button>` +
-      `<button class="act-btn primary" data-act="play" ${combo ? '' : 'disabled'}>${t('b_play')}</button>`;
+      playBtn;
   }
   return '';
 }
@@ -846,37 +674,40 @@ function playSounds(v) {
 
 
 /* ---------------- turn timeout & auto-play ---------------- */
-// Visual countdown timer
-let _countdownInterval = null;
-function startCountdownDisplay() {
-  stopCountdownDisplay();
-  if (!document.getElementById('turn-countdown')) return;
-  _countdownInterval = setInterval(() => {
-    // Look up element each tick: re-renders (e.g. card selection) replace it
-    const el = document.getElementById('turn-countdown');
-    if (!el) return;
-    const remaining = Math.max(0, Math.ceil((App.turnDeadline - Date.now()) / 1000));
-    el.textContent = remaining + 's';
-    el.classList.toggle('urgent', remaining <= 10);
-    if (remaining <= 0) stopCountdownDisplay();
+const TURN_TIMEOUT_MS = 30000;
+
+/* One 250ms ticker drives every turn timer on screen: my #turn-countdown
+   and the active opponent's [data-opp-timer] chip. Elements are looked up
+   each tick because re-renders replace them. */
+let _turnTick = null;
+function startTurnTicker() {
+  stopTurnTicker();
+  _turnTick = setInterval(() => {
+    const now = Date.now();
+    const own = document.getElementById('turn-countdown');
+    if (own && App.turnDeadline) {
+      const r = Math.max(0, Math.ceil((App.turnDeadline - now) / 1000));
+      own.textContent = r + 's';
+      own.classList.toggle('urgent', r <= 10);
+    }
+    const opp = document.querySelector('[data-opp-timer]');
+    if (opp && App._oppDeadline) {
+      const r = Math.max(0, Math.ceil((App._oppDeadline - now) / 1000));
+      opp.textContent = r + 's';
+      opp.classList.toggle('urgent', r <= 10);
+    }
   }, 250);
 }
-function stopCountdownDisplay() {
-  if (_countdownInterval) {
-    clearInterval(_countdownInterval);
-    _countdownInterval = null;
-  }
+function stopTurnTicker() {
+  if (_turnTick) { clearInterval(_turnTick); _turnTick = null; }
 }
-
-
-const TURN_TIMEOUT_MS = 30000;
 
 function clearTurnTimer() {
   if (App.turnTimer) {
     clearTimeout(App.turnTimer);
     App.turnTimer = null;
   }
-  stopCountdownDisplay();
+  stopTurnTicker();
   const el = document.getElementById('turn-countdown');
   if (el) el.textContent = '';
 }
@@ -888,8 +719,8 @@ function startTurnTimer() {
   const seq = App.turnSeq;
   App.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
   App.turnTimer = setTimeout(() => onTurnTimeout(seq), TURN_TIMEOUT_MS);
-  // Start countdown display after DOM updates
-  setTimeout(startCountdownDisplay, 50);
+  // Start the ticker after DOM updates
+  setTimeout(startTurnTicker, 50);
 }
 
 function onTurnTimeout(seq) {
@@ -969,8 +800,14 @@ function renderGame() {
     clearTurnTimer();
     App.autoPlay = false;
   }
-  // Turn timeout: start timer on human's turn
+  // Turn timers: mine on my turn; an approximate countdown on the active
+  // opponent's panel otherwise (resets on every action broadcast).
   const isMyTurn = v.state === 'playing' && v.actor === v.mySeat;
+  if (v.roundNo !== App._lastRound) { App._lastRound = v.roundNo; App._lastActor = undefined; }
+  if (v.actor !== App._lastActor) {
+    App._lastActor = v.actor;
+    App._oppDeadline = Date.now() + TURN_TIMEOUT_MS;
+  }
   if (isMyTurn) {
     if (App.autoPlay) {
       clearTurnTimer();
@@ -979,6 +816,9 @@ function renderGame() {
     } else if (!App.turnTimer) {
       startTurnTimer();
     }
+  } else if (v.state === 'playing' && v.actor !== null && v.actor !== undefined && v.actor !== v.mySeat) {
+    clearTurnTimer();
+    startTurnTicker();
   } else {
     clearTurnTimer();
   }
@@ -1082,8 +922,23 @@ function bindActionButtons() {
     if (kind === 'hint') doHint();
     else if (kind === 'pass') { App.selected.clear(); act('pass'); }
     else if (kind === 'cancel-autoplay') cancelAutoPlay();
-    else if (kind === 'play') act('play', { ids: [...App.selected] });
+    else if (kind === 'play') {
+      if (btn.dataset.invalid) invalidPlayFeedback();
+      else act('play', { ids: [...App.selected] });
+    }
   });
+}
+
+/* Tapping 出牌 with an illegal selection: shake the hand, buzz, explain. */
+function invalidPlayFeedback() {
+  const hand = $('#my-hand');
+  if (hand) {
+    hand.classList.remove('shake');
+    void hand.offsetWidth; // restart animation
+    hand.classList.add('shake');
+  }
+  Snd.invalid();
+  if (App._invalidReason) toast(App._invalidReason);
 }
 
 /* Drag across the hand to (de)select a run of cards; a plain tap still
@@ -1235,15 +1090,20 @@ function renderSettle(v) {
   const myPlace = r.finishOrder.indexOf(v.mySeat) + 1;
   const iWon = myPlace === 1;
   const placeNames = ['🏆', '🥈', '🥉', '4️⃣'];
+  // Place points: 3P → 2/1/0, 4P → 3/2/1/0. Anything above is bomb bonus.
+  const placePoints = v.n === 4 ? [3, 2, 1, 0] : [2, 1, 0];
   const rows = r.finishOrder.map((seat, idx) => {
     const p = v.players[seat];
     const pts = r.roundScores ? r.roundScores[seat] : 0;
+    const bombBonus = Math.max(0, pts - (placePoints[idx] || 0));
+    const bombTag = bombBonus > 0 ? ` <span class="bomb-tag">💣+${bombBonus}</span>` : '';
     return `<div class="settle-row ${seat === v.mySeat ? 'me' : ''}">
       <span>${placeNames[idx] || ''} ${esc(p.name)}</span>
-      <span class="${pts > 0 ? 'plus' : ''}">+${pts}</span>
+      <span class="${pts > 0 ? 'plus' : ''}">+${pts}${bombTag}</span>
       <span class="total">${t('score_pts', p.score)}</span></div>`;
   }).join('');
   $('#settle-overlay').innerHTML = `<div class="settle-box ${iWon ? 'won' : 'lost'}">
+    ${iWon ? '<div class="settle-burst"></div>' : ''}
     <h2>${iWon ? t('s_youwin') : t('s_youlose')}</h2>
     <p class="personal">${t('s_place', myPlace)}</p>
     <div class="settle-rows">${rows}</div>
@@ -1280,21 +1140,9 @@ function confirmExit() {
 
 function goHome() {
   const wasOnline = App.role === 'online';
-  sendBye();
-  stopHeartbeat();
   App._netSession = (App._netSession || 0) + 1;
-  App._hostSeen = null;
   if (App.game) { App.game.stop(); App.game = null; }
-  if (App.peer) {
-    // Let the bye message flush before tearing the connection down.
-    const peer = App.peer;
-    App.peer = null;
-    setTimeout(() => { try { peer.destroy(); } catch (e) { } }, 300);
-  }
   App.role = null;
-  App.conns = {};
-  App.guests = [];
-  App.guestConn = null;
   App.started = false;
   App.view = null;
   App.selected = new Set();
@@ -1362,7 +1210,6 @@ function boot() {
   const toggleLang = () => {
     setLang(LANG === 'zh' ? 'en' : 'zh');
     applyStaticTexts();
-    if (App.role === 'host' && $('#screen-room').classList.contains('active')) updateRoomScreen();
     if (App.view) renderGame();
   };
   $('#btn-lang').onclick = toggleLang;
@@ -1451,13 +1298,6 @@ function boot() {
   $('#btn-leave-room').onclick = goHome;
   $('#btn-exit-game').onclick = confirmExit;
   $('#btn-chat').onclick = toggleChatPop;
-
-  const farewell = () => {
-    sendBye();
-    if (App.peer) try { App.peer.destroy(); } catch (e) { }
-  };
-  window.addEventListener('beforeunload', farewell);
-  window.addEventListener('pagehide', farewell);
 }
 
 document.addEventListener('DOMContentLoaded', boot);
