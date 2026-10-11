@@ -54,6 +54,8 @@ ${js.trimEnd()}
   };
   globalThis.gdyCanBeat = function (candidate, target) { return canBeat(candidate, target); };
   globalThis.gdyBombTier = function (kind) { return bombTier(kind); };
+  // Namespace for later shared bundles (PR5 module 3: engine imports classify).
+  globalThis.GdyClassify = { classifyHand, canBeat, bombTier };
 })();
 `;
   writeFileSync(outFile, bundle);

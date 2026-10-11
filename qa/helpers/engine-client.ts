@@ -15,19 +15,21 @@ interface BrowserEngine {
 
 /** Execute the real shipped browser assets in an isolated Node VM, with deterministic RNG. */
 export function loadBrowserEngine(seed = 20261011): BrowserEngine {
-  // Mirror index.html script order: the shared bundles (PR5 modules 1-2)
+  // Mirror index.html script order: the shared bundles (PR5 modules 1-3)
   // must load before gdy-engine.js, which calls their gdy* shims.
   const deckFile = new URL('../../client/dist/js/gdy-shared-deck.js', import.meta.url);
   const classifyFile = new URL('../../client/dist/js/gdy-shared-classify.js', import.meta.url);
-  const engineFile = new URL('../../client/dist/js/gdy-engine.js', import.meta.url);
+  const engineFile = new URL('../../client/dist/js/gdy-shared-engine.js', import.meta.url);
+  const gameEngineFile = new URL('../../client/dist/js/gdy-engine.js', import.meta.url);
   const math = Object.create(Math) as Math;
   math.random = seededRandom(seed);
   const context = createContext({ Math: math });
   runInContext(readFileSync(deckFile, 'utf8'), context, { filename: deckFile.pathname, timeout: 5000 });
   runInContext(readFileSync(classifyFile, 'utf8'), context, { filename: classifyFile.pathname, timeout: 5000 });
-  runInContext(`${readFileSync(engineFile, 'utf8')}\nglobalThis.qaEngine = {
+  runInContext(readFileSync(engineFile, 'utf8'), context, { filename: engineFile.pathname, timeout: 5000 });
+  runInContext(`${readFileSync(gameEngineFile, 'utf8')}\nglobalThis.qaEngine = {
     classify: gdyClassify, canBeat: gdyCanBeat, findPlays: gdyFindPlays, hint: gdyHint
-  };`, context, { filename: engineFile.pathname, timeout: 5000 });
+  };`, context, { filename: gameEngineFile.pathname, timeout: 5000 });
   return context.qaEngine as BrowserEngine;
 }
 

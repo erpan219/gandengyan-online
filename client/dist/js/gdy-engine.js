@@ -29,69 +29,9 @@ function gdySortHand(hand) {
   return hand;
 }
 
-/* Find all playable combinations from a hand that beat target (or any if no target) */
-function gdyFindPlays(handIds, target, playerCount) {
-  const plays = [];
-  const n = handIds.length;
-  // Try all subsets (practical for small hands; limit to reasonable sizes)
-  // For efficiency, group by rank first
-  const byRank = new Map();
-  for (const id of handIds) {
-    const r = gdyCardRank(id);
-    if (!byRank.has(r)) byRank.set(r, []);
-    byRank.get(r).push(id);
-  }
-
-  const tryCombo = (ids) => {
-    const c = gdyClassify(ids, playerCount);
-    if (c.ok && (!target || gdyCanBeat(c.combination, target))) {
-      plays.push(c.combination);
-    }
-  };
-
-  // Singles, pairs, triple bombs, four bombs
-  for (const [rank, ids] of byRank) {
-    if (rank === 'SJ' || rank === 'BJ') continue;
-    tryCombo([ids[0]]);
-    if (ids.length >= 2) tryCombo(ids.slice(0, 2));
-    if (ids.length >= 3) tryCombo(ids.slice(0, 3));
-    if (ids.length >= 4) tryCombo(ids.slice(0, 4));
-  }
-  // Jokers as singles
-  for (const [rank, ids] of byRank) {
-    if (rank === 'SJ' || rank === 'BJ') tryCombo([ids[0]]);
-  }
-  // Rocket
-  const sj = byRank.get('SJ'), bj = byRank.get('BJ');
-  if (sj && bj) tryCombo([sj[0], bj[0]]);
-
-  // Straights and pair runs (brute force over rank sequences)
-  const ranks = GDY_SEQ_RANKS;
-  const straightMin = playerCount === 3 ? 4 : 3;
-  for (let len = straightMin; len <= 11; len++) {
-    for (let start = 0; start + len <= ranks.length; start++) {
-      const seqRanks = ranks.slice(start, start + len);
-      // Straight: one of each
-      if (seqRanks.every(r => byRank.has(r))) {
-        tryCombo(seqRanks.map(r => byRank.get(r)[0]));
-      }
-    }
-  }
-  // Pair runs: minimum 2 ranks (separate from straight minimum)
-  for (let len = 2; len <= 11; len++) {
-    for (let start = 0; start + len <= ranks.length; start++) {
-      const seqRanks = ranks.slice(start, start + len);
-      // Pair run: two of each
-      if (seqRanks.every(r => byRank.has(r) && byRank.get(r).length >= 2)) {
-        const ids = [];
-        seqRanks.forEach(r => ids.push(...byRank.get(r).slice(0, 2)));
-        tryCombo(ids);
-      }
-    }
-  }
-
-  return plays;
-}
+/* NOTE (PR5 module 3): gdyFindPlays was removed here; it now comes from
+   shared/engine.ts (getLegalMoves) via js/gdy-shared-engine.js (loaded before this file).
+   The bot/hint *strategies* (gdyBotPlay/gdyHint*) stay here by design. */
 
 /* Bot: pick a play. Returns cardIds or null for pass. */
 function gdyBotPlay(handIds, target, playerCount, oppCounts) {
