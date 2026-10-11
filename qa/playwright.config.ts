@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }], ['junit', { outputFile: 'test-results/junit.xml' }]],
   use: { baseURL: 'http://localhost:3000', screenshot: 'only-on-failure', trace: 'retain-on-failure', video: 'retain-on-failure', actionTimeout: 10_000 },
   projects: [
-    { name: 'engine', testMatch: /(?:game-rules|scoring|protocol|shared-deck)\.spec\.ts/ }, // non-browser tests: rules, scoring, raw-protocol, shared-source goldens
+    { name: 'engine', testMatch: /(?:game-rules|scoring|protocol|shared-deck|shared-classify)\.spec\.ts/ }, // non-browser tests: rules, scoring, raw-protocol, shared-source goldens
     { name: 'chromium-desktop', testMatch: browserFiles, use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'firefox-desktop', testMatch: browserFiles, use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit-desktop', testMatch: browserFiles, timeout: WEBKIT_TIMEOUT, use: { ...devices['Desktop Safari'], ...webkitUse } },

@@ -70,4 +70,6 @@ function barelyShuffle(arr, rand = Math.random) {
   globalThis.gdyRankStrength = function (rank) { return rankStrength(rank); };
   globalThis.gdyShuffle = function (arr, rand) { return shuffle(arr, rand); };
   globalThis.gdyBarelyShuffle = function (arr, rand) { return barelyShuffle(arr, rand); };
+  // Namespace for later shared bundles (PR5 module 2+: classify imports deck).
+  globalThis.GdyShared = { createDeck, cardIdToRank, rankStrength, shuffle, barelyShuffle, dealCards };
 })();

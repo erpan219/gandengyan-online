@@ -15,7 +15,7 @@ function isKnownCard(id: CardId): boolean {
   return id === 'SJ' || id === 'BJ' || CARD_ID_RE.test(id);
 }
 
-function bombTier(kind: Kind): number {
+export function bombTier(kind: Kind): number {
   switch (kind) {
     case 'ROCKET': return 3;
     case 'FOUR_BOMB': return 2;
