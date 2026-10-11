@@ -167,6 +167,18 @@ test('R4: fresh joins receive server-issued 32-hex tokens', async () => {
   a.close();
 });
 
+test('R4: HELLO without a token is a greeting, not SESSION_EXPIRED', async () => {
+  const a = new Client();
+  await a.open();
+  a.send({ type: 'HELLO' });
+  // The client sends a tokenless HELLO on every fresh socket before JOIN_ROOM;
+  // it must not produce a spurious SESSION_EXPIRED (which also poisoned the
+  // join-race test's terminal-frame poll).
+  await new Promise((r) => setTimeout(r, 500));
+  expect(a.received.some((m) => m.type === 'ERROR')).toBe(false);
+  a.close();
+});
+
 test('R4: reconnect with a valid token reclaims the same seat', async () => {
   const a = new Client();
   const { code, token, playerId } = await createRoom(a, 'HostA');

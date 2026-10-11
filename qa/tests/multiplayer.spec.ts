@@ -95,7 +95,7 @@ test('quick chat reaches a peer as visible text without mutating the game', asyn
 
 test('complete a real hand, verify settlement rows and start a winner-led rematch @key-flow', async ({ createPlayers }, testInfo) => {
   // WebKit needs a larger budget for a full 170-action hand (see config).
-  test.setTimeout(testInfo.project.name.includes('webkit') ? 240_000 : 120_000);
+  test.setTimeout(testInfo.project.name.includes('webkit') ? 300_000 : 120_000);
   const players = await createPlayers(3);
   await startHumanRoom(players);
   const host = players[0].app;
@@ -111,11 +111,14 @@ test('complete a real hand, verify settlement rows and start a winner-led rematc
     await expect(active.page.locator('#turn-countdown')).toBeVisible();
     const beforeCards = active.wire.game.view.selfHand.length;
     if (await active.hint.isVisible()) {
-      await active.hint.click();
+      // force: skip Playwright's RAF stability polling — under WebKit software
+      // rendering it costs ~1s per click with zero assertion value here
+      // (click mechanics are covered by ui.spec.ts pointer-geometry tests).
+      await active.hint.click({ force: true });
       const selected = await active.hand.locator('.sel').count();
       expect(selected).toBeGreaterThan(0);
       await expect(active.play).not.toHaveAttribute('data-invalid', '1');
-      await active.play.click();
+      await active.play.click({ force: true });
       const accepted = await active.wire.waitFor<GameFrame>('GAME_STATE', frame => frame.view.revision > revision);
       expect(accepted.view.selfHand).toHaveLength(beforeCards - selected);
       revision = accepted.view.revision;
@@ -164,7 +167,12 @@ test('two guests racing for the last seat produce exactly one join and one ROOM_
     await racers[i].page.locator('#inp-code').fill(code);
   }
   await Promise.all(racers.map(racer => racer.page.locator('#btn-join').click()));
-  await expect.poll(() => racers.every(racer => racer.wire.received.some(frame => frame.type === 'ROOM_STATE' || frame.type === 'ERROR')), {
+  await expect.poll(() => racers.every(racer => racer.wire.received.some(frame =>
+    // JOIN-terminal frames only: a bare ERROR (e.g. a greeting-time error)
+    // must not satisfy the poll before the JOIN responses arrive.
+    frame.type === 'ROOM_STATE' ||
+    (frame.type === 'ERROR' && (frame as unknown as { code?: unknown }).code === 'ROOM_FULL')
+  )), {
     message: 'Both real concurrent join requests receive a terminal response',
   }).toBe(true);
   const winners = racers.filter(racer => racer.wire.received.some(frame => frame.type === 'ROOM_STATE'));

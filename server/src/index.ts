@@ -301,6 +301,10 @@ wss.on('connection', (ws: WebSocket, req) => {
 
     switch (msg.type) {
       case 'HELLO': {
+        // No token = fresh connection greeting; nothing to restore. (A
+        // tokenless HELLO must not error — the client sends one on every
+        // new socket before JOIN_ROOM.)
+        if (msg.token === undefined) break;
         // R4: malformed tokens can never resolve to a session.
         if (!isValidToken(msg.token)) {
           send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',

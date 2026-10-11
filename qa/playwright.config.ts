@@ -5,7 +5,7 @@ const browserFiles = /(?:lobby|multiplayer|reconnect|i18n|accessibility|ui)\.spe
 // re-rendering game view. These budgets cover that slowness; they do not
 // weaken any assertion.
 const webkitUse = { actionTimeout: 30_000 };
-const WEBKIT_TIMEOUT = 240_000;
+const WEBKIT_TIMEOUT = 300_000;
 export default defineConfig({
   testDir: './tests', fullyParallel: false, workers: 1,
   timeout: 60_000, expect: { timeout: 10_000 }, retries: 0,
