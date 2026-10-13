@@ -89,10 +89,7 @@ button.off { opacity: .38; text-decoration: line-through; }
 .join-row { display: flex; gap: 10px; }
 .join-row input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 6px; font-size: 20px; text-align: center; }
 .join-row button { flex: 0 0 auto; padding: 0 26px; }
-.diag-btn { align-self: center; margin-top: 4px; opacity: .8; }
 #diag-out { display: flex; flex-direction: column; gap: 4px; }
-.diag-line { font-size: 13px; color: rgba(238,244,238,.85); }
-.diag-verdict { font-size: 13px; margin-top: 6px; color: #ffd67e; line-height: 1.5; }
 
 /* ---------- room ---------- */
 .room-panel { text-align: center; align-items: center; }
@@ -181,8 +178,6 @@ button.off { opacity: .38; text-decoration: line-through; }
 .pmeta { font-size: 12px; color: rgba(255,255,255,.75); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .pplay { margin-top: 4px; }
 .badge { font-size: 10px; background: rgba(255,255,255,.15); border-radius: 6px; padding: 2px 6px; vertical-align: 1px; }
-.badge.lord { background: rgba(245,192,78,.3); color: #ffd67e; }
-.badge.ally { background: rgba(126,190,255,.25); color: #a9d4ff; }
 /* Gold card-count ring */
 .card-count-ring {
   display: inline-flex; align-items: center; justify-content: center;
@@ -417,22 +412,6 @@ button.off { opacity: .38; text-decoration: line-through; }
 #help-body h3 { margin: 14px 0 4px; color: #ffd67e; font-size: 15px; }
 #help-body p { font-size: 14px; line-height: 1.7; color: rgba(238,244,238,.85); }
 
-/* ---------- cosmetic overlays ---------- */
-.fly-card {
-  position: fixed; z-index: 80; margin: 0 !important; pointer-events: none;
-  transition: transform .75s cubic-bezier(.45,-.15,.25,1), opacity .75s ease;
-  transform-origin: center;
-}
-.lord-banner {
-  position: fixed; top: 34%; left: 50%; z-index: 85; pointer-events: none;
-  transform: translate(-50%, -50%) scale(.6); opacity: 0;
-  background: linear-gradient(180deg, rgba(245,192,78,.95), rgba(224,158,38,.95));
-  color: #40290a; font-size: 26px; font-weight: 800; letter-spacing: 1px;
-  padding: 14px 34px; border-radius: 999px; box-shadow: 0 8px 30px rgba(0,0,0,.5);
-  transition: transform .3s cubic-bezier(.2,1.6,.4,1), opacity .3s ease;
-  white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
-}
-.lord-banner.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 
 /* ---------- effects ---------- */
 @keyframes cardDeal {

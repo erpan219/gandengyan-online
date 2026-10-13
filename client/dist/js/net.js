@@ -87,16 +87,3 @@ function netClose() {
 }
 
 function netAvailable() { return typeof WebSocket !== 'undefined'; }
-
-/* Room code generation (client-side display only; server assigns actual code) */
-const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-function makeRoomCode() {
-  let s = '';
-  for (let i = 0; i < 4; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-  return s;
-}
-
-/* Stub for compatibility with ui.js diagnostics (not implemented for WS) */
-async function netDiagnose() {
-  return { broker: true, stun: false, turn: false };
-}

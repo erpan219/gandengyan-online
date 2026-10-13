@@ -435,8 +435,6 @@ function sndSig(v) {
       if (!lp) return '';
       return lp.pass ? 'P' : lp.cards.map(c => c.id).join('-');
     }),
-    bids: v.players.map(p => (p.bid === null || p.bid === undefined) ? '' : String(p.bid)).join(','),
-    dbls: v.players.map(p => (p.dbl === null || p.dbl === undefined) ? '' : (p.dbl ? '1' : '0')).join(','),
   };
 }
 
@@ -445,7 +443,7 @@ function playSounds(v) {
   const cur = sndSig(v);
   App._snd = cur;
   if (!prev || prev.round !== cur.round) {
-    if (v.state === 'bidding') Snd.deal();
+    if (v.state === 'playing') Snd.deal();
     return;
   }
   for (let i = 0; i < v.players.length; i++) {
@@ -460,8 +458,6 @@ function playSounds(v) {
     else if (c && c.type === 'pair_run') { Snd.play(); showComboBurst(t('c_pair_straight')); }
     else Snd.play();
   }
-  if (cur.bids !== prev.bids) Snd.bid();
-  if (cur.dbls !== prev.dbls) Snd.dbl();
   if (v.state === 'settle' && prev.state !== 'settle' && v.result) {
     const r = v.result;
     // Gandengyan has no landlord: winner is first in finishOrder.
@@ -691,51 +687,8 @@ function renderGame() {
   bindActionButtons();
   renderBubbles();
 
-  if (v.landlord != null && App._lordSeen !== v.roundNo) {
-    App._lordSeen = v.roundNo;
-    animateLandlord(v);
-  }
-
   if (v.state === 'settle' && v.result) queueSettle(v);
   else { cancelSettle(); $('#settle-overlay').classList.add('hidden'); }
-}
-
-/* Landlord reveal: banner + the kitty cards flying into the landlord's
-   hand (or seat panel). Purely cosmetic overlay clones. */
-function animateLandlord(v) {
-  Snd.landlord();
-  const banner = document.createElement('div');
-  banner.className = 'lord-banner';
-  banner.textContent = '👑 ' + t('lord_banner', v.players[v.landlord].name);
-  document.body.appendChild(banner);
-  setTimeout(() => banner.classList.add('show'), 20);
-  setTimeout(() => { banner.classList.remove('show'); setTimeout(() => banner.remove(), 400); }, 1800);
-
-  const srcCards = $$('#table-mid .bottom-cards .card');
-  const target = v.landlord === v.mySeat ? $('#my-hand')
-    : ($(`.opp[data-seat="${v.landlord}"]`) || $('#table-mid'));
-  if (!srcCards.length || !target) return;
-  const tr = target.getBoundingClientRect();
-  const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
-  srcCards.forEach((el, i) => {
-    const r = el.getBoundingClientRect();
-    const clone = el.cloneNode(true);
-    clone.classList.add('fly-card');
-    clone.style.left = r.left + 'px';
-    clone.style.top = r.top + 'px';
-    clone.style.width = r.width + 'px';
-    clone.style.height = r.height + 'px';
-    document.body.appendChild(clone);
-    requestAnimationFrame(() => {
-      clone.style.transform = 'scale(1.9)';
-      setTimeout(() => {
-        clone.style.transform =
-          `translate(${tx - (r.left + r.width / 2)}px, ${ty - (r.top + r.height / 2)}px) scale(.35)`;
-        clone.style.opacity = '0';
-      }, 650 + i * 130);
-    });
-    setTimeout(() => clone.remove(), 1700 + i * 130);
-  });
 }
 
 // Event delegation: single listener on #actions survives innerHTML re-renders.
@@ -747,11 +700,9 @@ function bindActionButtons() {
   const el = $('#actions');
   if (!el) return;
   el.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-act],[data-bid],[data-dbl]');
+    const btn = e.target.closest('[data-act]');
     if (!btn) return;
     if (btn.disabled) return;
-    if (btn.dataset.bid !== undefined) { act('bid', { v: +btn.dataset.bid }); return; }
-    if (btn.dataset.dbl !== undefined) { act('double', { yes: +btn.dataset.dbl === 1 }); return; }
     const kind = btn.dataset.act;
     if (kind === 'hint') doHint();
     else if (kind === 'pass') { App.selected.clear(); act('pass'); }
@@ -1013,7 +964,6 @@ function goHome() {
   App.selected = new Set();
   App.bubbles = {};
   App._snd = null;
-  App._lordSeen = null;
   App._hintSig = null;
   App._beatSig = null;
   if (App._joinTimer) { clearTimeout(App._joinTimer); App._joinTimer = null; }

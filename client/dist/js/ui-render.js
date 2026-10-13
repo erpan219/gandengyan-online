@@ -27,17 +27,16 @@ function cardHTML(c, cls, laizi, interactive) {
     `<span class="cr">${RANK_LABELS[c.r]}</span><span class="cs">${SUITS[c.s]}</span></div>`;
 }
 
+/* Gandengyan has no landlord/ally roles; no badge is ever shown. */
 function seatBadge(v, p) {
-  if (p.landlord) return `<span class="badge lord">👑 ${t('g_landlord')}</span>`;
-  if (p.ally) return `<span class="badge ally">🤝 ${t('g_ally')}</span>`;
-  return v.landlord != null ? `<span class="badge">${t('g_farmer')}</span>` : '';
+  return '';
 }
 
 /* Glanceable opponent panel: avatar, name, card-count ring, score, live
    turn timer, and a badge of the player's last play. */
 function oppPanelHTML(v, seat) {
   const p = v.players[seat];
-  const isTurn = v.actor === seat && (v.state === 'bidding' || v.state === 'doubling' || v.state === 'playing');
+  const isTurn = v.actor === seat && v.state === 'playing';
   const badge = seatBadge(v, p);
   const settleHand = p.hand && v.state === 'settle'
     ? `<div class="mini-cards reveal">${p.hand.map(c => cardHTML(c, 'mini', v.laizi)).join('')}</div>` : '';
@@ -129,18 +128,6 @@ function myInfoHTML(v) {
 }
 function actionsHTML(v) {
   const mine = v.actor === v.mySeat;
-  if (v.state === 'bidding') {
-    if (!mine) return statusHTML(v);
-    let btns = `<button class="act-btn" data-bid="0">${t('bid0')}</button>`;
-    for (let b = 1; b <= 3; b++)
-      btns += `<button class="act-btn primary" data-bid="${b}" ${b <= v.currentBid ? 'disabled' : ''}>${t('bidN', b)}</button>`;
-    return btns;
-  }
-  if (v.state === 'doubling') {
-    if (!mine) return statusHTML(v);
-    return `<button class="act-btn" data-dbl="0">${t('dblN')}</button>` +
-      `<button class="act-btn primary" data-dbl="1">${t('dblY')}</button>`;
-  }
   if (v.state === 'playing') {
     if (!mine) return statusHTML(v);
     // Auto-play mode: show cancel button prominently
