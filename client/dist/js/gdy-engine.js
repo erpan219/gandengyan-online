@@ -33,181 +33,175 @@ function gdySortHand(hand) {
    shared/engine.ts (getLegalMoves) via js/gdy-shared-engine.js (loaded before this file).
    The bot/hint *strategies* (gdyBotPlay/gdyHint*) stay here by design. */
 
-/* Bot: pick a play. Returns cardIds or null for pass. */
-function gdyBotPlay(handIds, target, playerCount, oppCounts) {
-  oppCounts = oppCounts || [];
-  const plays = gdyFindPlays(handIds, target, playerCount);
-  if (!plays.length) return null;
-
-  // === Heuristic 1: Hand evaluation ===
-  const rankCount = {};
-  for (const id of handIds) {
-    const r = gdyCardRank(id);
-    rankCount[r] = (rankCount[r] || 0) + 1;
-  }
-  const isBombRank = (r) => (rankCount[r] || 0) >= 3 && r !== 'SJ' && r !== 'BJ';
-  const highRanks = ['3', '2', 'SJ', 'BJ'];
-
-  // === NEW: Adaptive Hand Role Evaluation ===
-  // Classify hand as sprinter (can finish fast), controller (has bombs/high cards),
-  // or spoiler (disrupt opponents). Updates strategy accordingly.
-  const bombCount = Object.keys(rankCount).filter(r => isBombRank(r)).length;
-  const highCardCount = handIds.filter(id => highRanks.includes(gdyCardRank(id))).length;
-  const singletonCount = Object.values(rankCount).filter(c => c === 1).length;
-  const handSize = handIds.length;
-
-  let handRole = 'spoiler'; // default: disrupt
-  if (handSize <= 8 && singletonCount <= 2) handRole = 'sprinter'; // can finish fast
-  else if (bombCount >= 1 || highCardCount >= 4) handRole = 'controller'; // has power
-
-  // === Heuristic: Opponent threat detection ===
-  const oppThreat = oppCounts.some(c => c <= 2);
-  const oppCloseToWin = oppCounts.some(c => c <= 4);
-  const minOppCards = oppCounts.length ? Math.min(...oppCounts) : 99;
-
-  // Filter: don't break bombs for ordinary plays (unless desperate)
-  const preservesBombs = (play) => {
-    if (gdyBombTier(play.kind) > 0) return true;
-    for (const id of play.cardIds) {
-      if (isBombRank(gdyCardRank(id))) return false;
-    }
-    return true;
-  };
-  const smart = plays.filter(preservesBombs);
-  const pool = smart.length ? smart : plays;
-
-  // === Heuristic 2: Lead strategy (enhanced with probe planning & role) ===
-  if (!target) {
-    const noBombLead = pool.filter(p => gdyBombTier(p.kind) === 0);
-    const leadPool = noBombLead.length ? noBombLead : pool;
-
-    const scored = leadPool.map(p => {
-      let score = p.cardCount * 10;
-      if (p.kind === 'PAIR' || p.kind === 'PAIR_RUN') score += 5;
-      if (p.kind === 'STRAIGHT') score += 8;
-      if (p.strength > 10) score -= (p.strength - 10) * 2;
-
-      // NEW: Lead Shaping - probe with small singles to find stoppers
-      if (p.kind === 'SINGLE' && p.strength <= 6) {
-        score += 6; // Probe: cheap info about opponent strength
-      }
-      // NEW: Avoid giving next player easy tempo unless we can regain control
-      if (handRole === 'controller' && p.strength < 8 && p.cardCount === 1) {
-        score -= 4; // Controller prefers keeping initiative with stronger leads
-      }
-      // NEW: Sprinter plays fastest - prioritize max cards dumped
-      if (handRole === 'sprinter') {
-        score += p.cardCount * 5; // Extra bonus for dumping
-        if (p.strength > 10) score += 10; // Sprinter uses high cards to finish
-      }
-      // NEW: Spoiler disrupts - prefer plays that force responses
-      if (handRole === 'spoiler' && p.kind === 'SINGLE' && p.strength >= 8 && p.strength <= 11) {
-        score += 5; // Mid-high singles force opponents to spend
-      }
-
-      // Humanlike variance: larger random factor for less predictability
-      score += Math.random() * 5;
-      return { play: p, score };
-    });
-    scored.sort((a, b) => b.score - a.score);
-
-    // NEW: Endgame Line Search - check if we can force a win in 2 moves
-    if (handIds.length <= 8) {
-      for (const s of scored.slice(0, 3)) {
-        const remaining = handIds.length - s.play.cardCount;
-        if (remaining <= 3) {
-          // Likely can finish next turn - prioritize
-          return s.play.cardIds;
+/* Bot planning mirrors shared/bot.ts's rank-pattern evaluation. The server
+   also sees public seat/pass context; practice keeps its existing count-only
+   interface and uses randomness only for strategically equivalent choices. */
+function gdyBotCountsFor(cards) {
+    const counts = Array(15).fill(0);
+    for (const id of cards)
+        counts[gdyRankStrength(gdyCardRank(id))]++;
+    return counts;
+}
+/**
+ * Partition rank counts into legal plays. Suits are interchangeable, so this
+ * reuses legal move shapes instead of exploring permutations of physical cards.
+ * The search is bounded; unusually large hands fall back to a legal greedy
+ * partition, never to a made-up combination or an illegal move.
+ */
+function gdyBotHandPlanner(leadMoves) {
+    const patterns = leadMoves.map(play => ({ counts: gdyBotCountsFor(play.cardIds), size: play.cardCount }))
+        .sort((a, b) => b.size - a.size);
+    const byRank = Array.from({ length: 15 }, (_, rank) => patterns.filter(p => p.counts[rank] > 0));
+    const memo = new Map();
+    let visited = 0;
+    const fits = (pattern, counts) => pattern.counts.every((n, i) => n <= counts[i]);
+    const subtract = (counts, pattern) => counts.map((n, i) => n - pattern.counts[i]);
+    const greedy = (counts) => {
+        let remaining = counts.slice();
+        let turns = 0;
+        while (remaining.some(Boolean)) {
+            const play = patterns.find(p => fits(p, remaining));
+            remaining = subtract(remaining, play);
+            turns++;
         }
-      }
+        return turns;
+    };
+    const turns = (counts) => {
+        const first = counts.findIndex(n => n > 0);
+        if (first < 0)
+            return 0;
+        const key = counts.join('');
+        const cached = memo.get(key);
+        if (cached !== undefined)
+            return cached;
+        if (++visited > 6000)
+            return greedy(counts);
+        let best = counts.reduce((sum, n) => sum + n, 0);
+        // Every partition has a play containing this rank: anchoring removes the
+        // factorial number of equivalent play orders without removing solutions.
+        for (const pattern of byRank[first]) {
+            if (!fits(pattern, counts))
+                continue;
+            best = Math.min(best, 1 + turns(subtract(counts, pattern)));
+            if (best === 1)
+                break;
+        }
+        memo.set(key, best);
+        return best;
+    };
+    return turns;
+}
+/** Relative ability to retain the lead, not a claim about hidden hands. */
+function gdyBotControlValue(play) {
+    const tier = gdyBombTier(play.kind);
+    if (tier === 3)
+        return 1;
+    if (tier === 2)
+        return 0.82 + play.strength / 80;
+    if (tier === 1)
+        return 0.55 + play.strength / 40;
+    const maxStrength = play.kind === 'SINGLE' ? 14 : play.kind === 'PAIR' ? 12 :
+        11 - (play.kind === 'PAIR_RUN' ? play.cardCount / 2 : play.cardCount);
+    const relative = maxStrength === 0 ? 1 : play.strength / maxStrength;
+    return relative * relative;
+}
+function gdyBotRankMoves(view, playerCount, moves) {
+    const counts = gdyBotCountsFor(view.selfHand);
+    const leadMoves = view.lastPlay ? gdyFindPlays(view.selfHand, null, playerCount) : moves;
+    const turnsFor = gdyBotHandPlanner(leadMoves);
+    const initialTurns = turnsFor(counts);
+    const opponents = view.players.filter(p => p.id !== view.selfId && p.place === null && p.cardCount > 0);
+    const oneCardThreat = opponents.some(p => p.cardCount === 1);
+    const urgent = opponents.some(p => p.cardCount <= 2);
+    return moves.map(play => {
+        const used = gdyBotCountsFor(play.cardIds);
+        const remaining = counts.map((n, i) => n - used[i]);
+        const turns = turnsFor(remaining);
+        const control = gdyBotControlValue(play);
+        const tier = gdyBombTier(play.kind);
+        let score = -32 * turns + play.cardCount * 1.6;
+        // Losing a useful grouping costs a future turn; these smaller penalties
+        // preserve flexible control cards when two partitions are equally short.
+        for (let rank = 0; rank < 13; rank++) {
+            if (used[rank] && remaining[rank])
+                score -= counts[rank] >= 3 ? 14 : counts[rank] === 2 ? 4 : 0;
+        }
+        if (counts[13] && counts[14] && used[13] !== used[14])
+            score -= 16;
+        score -= tier ? 9 + tier : play.strength * 0.35;
+        if (turns === 1)
+            score += control * 18;
+        else if (turns === 2)
+            score += control * 5;
+        if (!view.lastPlay) {
+            // A one-card opponent cannot go out over a pair/run. A high single can
+            // still be correct when it retains control for our final combination.
+            if (oneCardThreat)
+                score += play.kind === 'SINGLE' ? -44 * (1 - control) : 12;
+            if (!tier && opponents.some(p => p.cardCount === play.cardCount && p.cardCount <= 4)) {
+                score -= 8 * (1 - control);
+            }
+        }
+        else {
+            if (oneCardThreat && view.lastPlay.combination.kind === 'SINGLE')
+                score += control * 75;
+            else if (urgent)
+                score += control * 24;
+        }
+        return { play, score, turns, control, damage: 1 + turns - initialTurns };
+    }).sort((a, b) => b.score - a.score || b.play.cardCount - a.play.cardCount ||
+        gdyBombTier(a.play.kind) - gdyBombTier(b.play.kind) || a.play.strength - b.play.strength ||
+        a.play.cardIds.join(',').localeCompare(b.play.cardIds.join(',')));
+}
+function gdyBotShouldPass(view, best) {
+    if (!view.lastPlay)
+        return false;
+    const opponents = view.players.filter(p => p.id !== view.selfId && p.place === null && p.cardCount > 0);
+    const urgent = opponents.some(p => p.cardCount <= 2);
+    const owner = view.players.find(p => p.id === view.lastPlay.playerId);
+    // If the winner of this trick already finished and every other active
+    // player passed, passing may give us a free lead without spending a stopper.
+    if (owner && (owner.place !== null || owner.cardCount === 0)) {
+        const ownerIndex = view.players.indexOf(owner);
+        const next = Array.from({ length: view.players.length }, (_, i) => view.players[(ownerIndex + i + 1) % view.players.length])
+            .find(p => p.place === null && p.cardCount > 0);
+        if (next?.id === view.selfId && opponents.every(p => view.passedSinceLastPlay.includes(p.id)))
+            return true;
     }
-    // Endgame: if we can go out, do it
-    if (handIds.length <= 6) {
-      const finisher = scored.find(s => s.play.cardCount >= handIds.length - 2);
-      if (finisher) return finisher.play.cardIds;
+    if (urgent)
+        return false;
+    if (gdyBombTier(best.play.kind)) {
+        // Spend a bomb for a short route out or to take control from a player
+        // approaching the finish; do not enter a bomb war merely because we can.
+        return best.turns > 2 && !(owner && owner.place === null && owner.cardCount <= 4);
     }
-    return scored[0].play.cardIds;
-  }
-
-  // === Heuristic 3: Response strategy - beat only if worth it ===
-  const nonBombs = pool.filter(p => gdyBombTier(p.kind) === 0);
-
-  if (nonBombs.length) {
-    const scored = nonBombs.map(p => {
-      let score = 100 - p.strength;
-      if (p.cardCount === 1 && p.strength < 8) score += 10;
-      if (target.strength < 6 && p.strength >= 8) score -= 45;
-      if (oppThreat) score += 15;
-
-      // NEW: Threat-Aware Response Costing - evaluate future tempo
-      // If opponent is close to winning, deny them the exact card type they need
-      if (minOppCards <= 3) {
-        // Opponent likely needs a specific play to win - overplay to block
-        score += 20;
-        // Prefer using mid-strength cards to block (save highest for later)
-        if (p.strength >= 8 && p.strength <= 11) score += 8;
-      }
-      // NEW: Role-based response
-      if (handRole === 'sprinter' && p.cardCount > 1) {
-        score += 12; // Sprinter dumps multiple cards when possible
-      }
-      if (handRole === 'controller' && p.strength > 12) {
-        score -= 15; // Controller saves top cards for decisive moments
-      }
-      // NEW: Don't waste high cards on low-value tricks when safe
-      const trickValue = target.strength;
-      if (!oppThreat && !oppCloseToWin && trickValue < 7 && p.strength > 10) {
-        score -= 25; // Preserve high cards for meaningful tricks
-      }
-
-      // Humanlike variance
-      score += Math.random() * 7;
-      return { play: p, score };
-    });
-    scored.sort((a, b) => b.score - a.score);
-
-    if (!oppThreat && scored[0].score < 70) return null;
-    return scored[0].play.cardIds;
-  }
-
-  // === Heuristic 4: Bomb management (contextual valuation) ===
-  const bombs = pool.filter(p => gdyBombTier(p.kind) > 0);
-  if (bombs.length) {
-    const targetIsBomb = target && gdyBombTier(target.kind) > 0;
-    const winWithBomb = bombs.some(b => {
-      const remaining = handIds.length - b.cardIds.length;
-      return remaining === 0;
-    });
-
-    // NEW: Contextual Bomb Valuation - only bomb when it creates decisive value
-    let bombValue = 0;
-    let bombReason = '';
-    if (oppThreat) { bombValue += 50; bombReason = 'block_win'; }
-    else if (targetIsBomb) { bombValue += 30; bombReason = 'bomb_war'; }
-    else if (winWithBomb) { bombValue += 60; bombReason = 'instant_win'; }
-    else if (handIds.length <= 5) { bombValue += 25; bombReason = 'endgame'; }
-    else if (oppCloseToWin && minOppCards <= 4) { bombValue += 20; bombReason = 'threat'; }
-    // NEW: Don't bomb low-value tricks - save for better leverage
-    if (!oppThreat && target && target.strength < 8 && gdyBombTier(target.kind) === 0) {
-      bombValue -= 30; // Low-value trick, better to save bomb
-    }
-    // NEW: Controller role values bombs more highly
-    if (handRole === 'controller') bombValue += 10;
-
-    const shouldBomb = bombValue >= 25 || winWithBomb;
-
-    if (shouldBomb) {
-      bombs.sort((a, b) => gdyBombTier(a.kind) - gdyBombTier(b.kind) || a.strength - b.strength);
-      // NEW: Humanlike deception - occasionally use bigger bomb to bluff strength
-      let idx = 0;
-      if (bombs.length > 1 && Math.random() < 0.15 && bombReason === 'block_win') {
-        idx = 1; // 15% chance to overplay when blocking (unpredictable)
-      }
-      return bombs[idx].cardIds;
-    }
-  }
-
-  return null; // pass
+    // A cheap response is still useful progress. Save expensive stoppers
+  // when using one would also split a useful grouping in a long hand.
+  return best.damage > 0 && best.turns >= 3 && best.control > 0.65;
+}
+/* Bot: pick a legal play using only our hand, target and public card counts. */
+function gdyBotPlay(handIds, target, playerCount, oppCounts) {
+  const moves = gdyFindPlays(handIds, target, playerCount);
+  if (!moves.length) return null;
+  // Finish before preservation rules: splitting a bomb/rocket is correct when
+  // the entire hand is a legal winning response.
+  const finisher = moves.find(play => play.cardCount === handIds.length);
+  if (finisher) return finisher.cardIds;
+  const view = {
+    selfHand: handIds, selfId: 'self',
+    lastPlay: target ? { playerId: 'target', combination: target } : null,
+    players: (oppCounts || []).filter(count => Number.isFinite(count) && count > 0)
+      .map((count, i) => ({ id: 'opponent' + i, cardCount: count, place: null })),
+    passedSinceLastPlay: []
+  };
+  const ranked = gdyBotRankMoves(view, playerCount, moves)
+    .filter(option => !gdyBotShouldPass(view, option));
+  if (!ranked.length) return null;
+  const best = ranked[0];
+  const near = ranked.filter(option => best.score - option.score <= 0.7 && option.turns === best.turns &&
+    option.play.cardCount === best.play.cardCount && gdyBombTier(option.play.kind) === gdyBombTier(best.play.kind) &&
+    Math.abs(option.control - best.control) < 0.12);
+  return near[Math.floor(Math.random() * near.length)].play.cardIds;
 }
 
 /* Hint: find a play for the player */

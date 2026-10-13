@@ -581,3 +581,172 @@ button.off { opacity: .38; text-decoration: line-through; }
   .card.mini .cs { font-size: 9px; }
   .mini-cards .card { margin-left: -13px; }
 }
+
+/* ---------- phone landscape surface ----------
+ * These overrides belong only to a coarse-pointer phone during a game.
+ * Desktop/tablet breakpoints and all lobby layouts keep their existing rules.
+ * The shell also contains help/toasts, so portrait webviews have one coherent
+ * landscape coordinate space without requiring fullscreen permissions. */
+#game-viewport { display: contents; }
+html.phone-game-active, html.phone-game-active body { overflow: hidden; }
+.phone-game {
+  --game-safe-top: env(safe-area-inset-top, 0px);
+  --game-safe-right: env(safe-area-inset-right, 0px);
+  --game-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --game-safe-left: env(safe-area-inset-left, 0px);
+  --hand-card-width: clamp(60px, calc(var(--game-height) * .18), 72px);
+  --table-card-width: clamp(46px, calc(var(--game-height) * .135), 54px);
+}
+#game-viewport.phone-game {
+  display: block; position: fixed; left: var(--viewport-left); top: var(--viewport-top);
+  width: var(--game-width); height: var(--game-height);
+  transform: translateZ(0); transform-origin: top left;
+}
+#game-viewport.portrait-game {
+  transform: translateX(var(--game-height)) rotate(90deg);
+  --game-safe-top: env(safe-area-inset-right, 0px);
+  --game-safe-right: env(safe-area-inset-bottom, 0px);
+  --game-safe-bottom: env(safe-area-inset-left, 0px);
+  --game-safe-left: env(safe-area-inset-top, 0px);
+}
+.phone-game #screen-game.active { position: absolute; height: 100%; }
+.phone-game #table {
+  max-width: none;
+  padding: calc(4px + var(--game-safe-top)) calc(8px + var(--game-safe-right))
+    calc(4px + var(--game-safe-bottom)) calc(8px + var(--game-safe-left));
+}
+.phone-game #table-top { flex: 0 0 30px; min-height: 30px; gap: 6px; }
+.phone-game #center-info { flex-wrap: nowrap; gap: 4px; }
+.phone-game #center-info .chip { padding: 4px 8px; white-space: nowrap; }
+.phone-game .top-right-btns { gap: 4px; }
+.phone-game #table-top button.small { padding: 6px 9px; }
+.phone-game #seat-top { flex: 0 0 40px; margin: 0; }
+.phone-game #seat-top .opp {
+  min-width: 0; width: auto; max-width: 320px; padding: 3px 12px;
+  flex-direction: row; align-items: center; justify-content: center;
+}
+.phone-game #seat-top .opp-head { gap: 8px; }
+.phone-game #seat-top .avatar { width: 28px; height: 28px; margin: 0; }
+.phone-game #seat-top .opp-names { display: flex; align-items: center; gap: 8px; }
+.phone-game #seat-top .pname { font-size: 12px; max-width: 120px; }
+.phone-game #seat-top .pmeta { flex-wrap: nowrap; font-size: 11px; gap: 4px; }
+.phone-game #seat-top .pplay, .phone-game #seat-top .tag { display: none; }
+.phone-game #seat-top .chip.timer { padding: 3px 6px; }
+.phone-game #opp-row { flex: 1 1 0; min-height: 0; gap: 6px; margin-top: 4px; }
+.phone-game #opp-left, .phone-game #opp-right { flex: 0 0 84px; display: flex; min-width: 0; }
+.phone-game #opp-left .opp, .phone-game #opp-right .opp {
+  flex: 1; min-width: 0; padding: 4px; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+}
+.phone-game #opp-left .opp-head, .phone-game #opp-right .opp-head {
+  flex-direction: column; align-items: center; justify-content: center; gap: 3px; margin: 0;
+}
+.phone-game #opp-left .avatar, .phone-game #opp-right .avatar {
+  width: 34px; height: 34px; margin: 0; border-width: 2px;
+}
+.phone-game #opp-left .pname, .phone-game #opp-right .pname {
+  max-width: 74px; margin: 0; font-size: 11px;
+}
+.phone-game #opp-left .pmeta, .phone-game #opp-right .pmeta {
+  font-size: 11px; gap: 4px; justify-content: center; font-weight: 400;
+  color: rgba(255,255,255,.75);
+}
+.phone-game #opp-left .chip.timer, .phone-game #opp-right .chip.timer {
+  position: absolute; right: 2px; top: 2px; padding: 2px 4px; font-size: 11px;
+}
+.phone-game #opp-left .thinking-dots, .phone-game #opp-right .thinking-dots {
+  position: absolute; top: 22px; right: 4px; margin: 0;
+}
+.phone-game #opp-left .pplay, .phone-game #opp-right .pplay,
+.phone-game #opp-left .tag, .phone-game #opp-right .tag { display: none; }
+.phone-game .opp { border-radius: 14px; }
+.phone-game .pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone-game #table-mid { flex: 1; min-width: 0; min-height: 0; padding: 4px; }
+.phone-game #center-table { min-height: 0; }
+.phone-game .ts-top { top: 3px; }
+.phone-game .ts-bottom { bottom: 3px; }
+.phone-game .ts-left { left: 4px; }
+.phone-game .ts-right { right: 4px; }
+.phone-game .table-cards .card {
+  width: var(--table-card-width); height: calc(var(--table-card-width) * 1.42);
+  padding: 4px 5px; margin-left: -24px;
+}
+.phone-game .table-cards .card:first-child { margin-left: 0; }
+.phone-game .table-cards .cr { font-size: 18px; }
+.phone-game .table-cards .cs { font-size: 16px; }
+.phone-game .table-pass { font-size: 24px; }
+.phone-game #my-zone { position: relative; flex: 0 0 auto; gap: 0; padding-bottom: 0; }
+.phone-game #my-lastplay {
+  position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
+  min-height: 0; height: 24px; white-space: nowrap; z-index: 3;
+}
+.phone-game #my-zone:has(.combo-preview, .invalid-reason) #my-lastplay { visibility: hidden; }
+.phone-game #actions {
+  position: relative; width: 100%; min-height: 48px; gap: 6px;
+  padding-left: 140px; padding-right: 38px; flex-wrap: nowrap;
+}
+.phone-game .act-btn { min-height: 48px; padding: 10px 18px; flex: 0 0 auto; }
+.phone-game .turn-countdown { min-width: 34px; padding: 0 6px; margin-right: 0; }
+.phone-game #actions .combo-preview, .phone-game #actions .invalid-reason {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+  max-width: calc(100% - 180px); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; padding-bottom: 2px;
+}
+.phone-game #my-hand { max-width: none; padding: 16px 10px 4px; }
+.phone-game #my-hand .card {
+  width: var(--hand-card-width); height: calc(var(--hand-card-width) * 1.4);
+  padding: 4px 6px; -webkit-tap-highlight-color: transparent;
+}
+.phone-game #my-hand .cr { font-size: 21px; }
+.phone-game #my-hand .cs { font-size: 18px; }
+.phone-game #my-bar {
+  position: absolute; left: 0; right: 0; top: 0; max-width: none;
+  height: 48px; pointer-events: none;
+}
+.phone-game #my-info {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 6px; row-gap: 0;
+  width: 138px; pointer-events: auto;
+}
+.phone-game #my-info .avatar { width: 40px; height: 40px; grid-row: 1 / 3; }
+.phone-game #my-info .pname { font-size: 12px; align-self: end; }
+.phone-game #my-info .pmeta { font-size: 11px; align-self: start; }
+.phone-game #chat-bar { pointer-events: auto; }
+.phone-game #chat-pop { bottom: 120px; max-height: calc(var(--game-height) - 140px); overflow-y: auto; }
+.phone-game .autoplay-bar { padding: 0 6px; gap: 6px; }
+.phone-game .autoplay-bar .act-btn { min-height: 48px; min-width: 0; font-size: 16px; }
+.phone-game #help-modal, .phone-game #settle-overlay { padding: 12px; }
+.phone-game .help-box, .phone-game .settle-box {
+  max-height: calc(var(--game-height) - 24px); overflow-y: auto;
+}
+.phone-game #toast-wrap { max-width: calc(var(--game-width) - 40px); }
+.phone-game .toast { text-align: center; }
+.phone-game .confetti-piece { animation-name: phoneConfettiFall; }
+@keyframes phoneConfettiFall { to { transform: translateY(calc(var(--game-height) * 1.1)) rotate(720deg); } }
+
+/* Landscape Safari may leave less than 310px after browser chrome. Share
+ * the header row with the top seat, keeping the play surface tall enough. */
+.phone-game.short-game { --table-card-width: 42px; }
+.phone-game.short-game #table { position: relative; }
+.phone-game.short-game #table-top { flex-basis: 34px; min-height: 34px; }
+.phone-game.short-game #center-info {
+  display: grid; grid-template-columns: max-content max-content; justify-content: start;
+  justify-items: start; width: 132px; height: 33px; margin-right: auto; gap: 1px 4px;
+}
+.phone-game.short-game #center-info .chip { font-size: 10px; line-height: 12px; padding: 1px 5px; }
+.phone-game.short-game #center-info .chip:nth-child(2) { grid-row: 2; grid-column: 1 / 3; }
+.phone-game.short-game #center-info .chip:nth-child(3) { grid-row: 1; grid-column: 2; }
+.phone-game.short-game #seat-top {
+  position: absolute; top: calc(4px + var(--game-safe-top)); left: 50%;
+  transform: translateX(-50%); height: 34px; width: 200px;
+}
+.phone-game.short-game #seat-top .opp { width: 100%; padding: 2px 6px; }
+.phone-game.short-game #seat-top .opp-head, .phone-game.short-game #seat-top .opp-names { gap: 4px; }
+.phone-game.short-game #seat-top .pname { max-width: 62px; }
+.phone-game.short-game #seat-top .chip.timer { position: absolute; top: 1px; right: 1px; padding: 2px 4px; }
+.phone-game.short-game #seat-top .thinking-dots { position: absolute; right: 3px; top: 18px; }
+.phone-game.short-game #opp-left, .phone-game.short-game #opp-right { flex-basis: 96px; }
+.phone-game.short-game #opp-left .opp-head, .phone-game.short-game #opp-right .opp-head { flex-direction: row; gap: 4px; }
+.phone-game.short-game #opp-left .opp-names, .phone-game.short-game #opp-right .opp-names { width: 50px; }
+.phone-game.short-game #opp-left .pname, .phone-game.short-game #opp-right .pname { max-width: 50px; }
+.phone-game.short-game #opp-left .pmeta, .phone-game.short-game #opp-right .pmeta { gap: 2px; }
+.phone-game.short-game #table-mid { padding: 2px; }

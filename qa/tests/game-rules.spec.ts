@@ -434,3 +434,79 @@ test.describe('Shipped browser engine agrees with independent rule goldens', () 
     }
   });
 });
+
+test.describe('Strategic bot decisions use only legal moves and public information', () => {
+  const single = (id: CardId, strength: number): Combination => ({ kind: 'SINGLE', cardIds: [id], cardCount: 1, strength });
+  const fixtures: Array<{ name: string; hand: CardId[]; target: Combination | null; counts: number[]; expected: CardId[] | null; players?: 3 | 4 }> = [
+    { name: 'finish a whole bomb immediately on a free lead', hand: ['S-4', 'H-4', 'C-4'], target: null, counts: [9, 9], expected: ['S-4', 'H-4', 'C-4'] },
+    { name: 'finish a whole rocket over a high bomb', hand: ['SJ', 'BJ'], target: { kind: 'FOUR_BOMB', cardIds: ['S-3', 'H-3', 'C-3', 'D-3'], cardCount: 4, strength: 12 }, counts: [9, 9], expected: ['SJ', 'BJ'] },
+    { name: 'finish the legal three-card straight in four-player mode', hand: ['S-4', 'S-5', 'S-6'], target: null, counts: [9, 9, 9], expected: ['S-4', 'S-5', 'S-6'], players: 4 },
+    // The longest straight (4..J) strands two unrelated singles. 6..J leaves
+    // the legal 44-55 pair run: two plays total rather than three.
+    { name: 'plan the remainder instead of blindly dumping the longest run', hand: ['S-4', 'H-4', 'S-5', 'H-5', 'S-6', 'S-7', 'S-8', 'S-9', 'S-10', 'S-J'], target: null, counts: [9, 9], expected: ['S-6', 'S-7', 'S-8', 'S-9', 'S-10', 'S-J'] },
+    { name: 'preserve a pair when a single leaves a one-play finish', hand: ['S-2', 'H-2', 'S-3'], target: single('S-A', 10), counts: [9, 9], expected: ['S-3'] },
+    { name: 'lead a pair to deny a one-card opponent an immediate finish', hand: ['S-4', 'S-5', 'H-5', 'S-K'], target: null, counts: [1, 8], expected: ['S-5', 'H-5'] },
+    { name: 'use the highest single to block a one-card opponent', hand: ['S-5', 'S-K', 'BJ'], target: single('S-4', 0), counts: [1, 8], expected: ['BJ'] },
+    { name: 'ignore finished opponents when deciding whether to spend a bomb', hand: ['S-4', 'H-4', 'C-4', 'S-5', 'S-7', 'S-9', 'S-J', 'S-K'], target: single('BJ', 14), counts: [0, 9], expected: null },
+    { name: 'spend the same bomb when an active opponent is about to finish', hand: ['S-4', 'H-4', 'C-4', 'S-5', 'S-7', 'S-9', 'S-J', 'S-K'], target: single('BJ', 14), counts: [1, 9], expected: ['S-4', 'H-4', 'C-4'] },
+    { name: 'preserve a rocket and do not break it for a routine response', hand: ['SJ', 'BJ', 'S-4', 'S-6', 'S-8'], target: single('S-K', 9), counts: [9, 9], expected: null },
+  ];
+  for (const implementation of ['server', 'browser'] as const) {
+    for (const fixture of fixtures) {
+      test(`BOT-${implementation}: ${fixture.name}`, async () => {
+        const { loadBrowserEngine } = await import('../helpers/engine-client.js');
+        const view = deepFreeze({
+          rulesVersion: 'gdy-custom-1.0.0', gameId: 'bot-fixture', revision: 1,
+          selfId: 'self', selfHand: [...fixture.hand], currentPlayerId: 'self',
+          players: [{ id: 'self', cardCount: fixture.hand.length, place: null },
+            ...fixture.counts.map((count, i) => ({ id: `opponent${i}`, cardCount: count, place: count ? null : 1 }))],
+          lastPlay: fixture.target ? { playerId: 'opponent1', combination: fixture.target } : null,
+          passedSinceLastPlay: [], finishOrder: [], status: 'PLAYING' as const,
+        });
+        const before = JSON.stringify(view);
+        const players = fixture.players ?? 3;
+        const decision = implementation === 'server' ? chooseBotMove(view, players) : null;
+        const cards = implementation === 'server' ? (decision?.type === 'PLAY' ? decision.cardIds : null) :
+          loadBrowserEngine(91).bot(view.selfHand, fixture.target, players, fixture.counts);
+        expect(cards).toEqual(fixture.expected);
+        if (cards) expect(getLegalMoves(view, players).some(play => [...play.cardIds].sort().join(',') === [...cards].sort().join(','))).toBe(true);
+        expect(JSON.stringify(view)).toBe(before);
+      });
+    }
+  }
+
+  test('BOT-server: pass to inherit a finished leader’s trick without wasting control', () => {
+    const state = scenario({ p1: ['BJ', 'S-4', 'S-7'], p2: ['H-4', 'S-5', 'S-6'], p3: [] }, {
+      finishOrder: ['p3'], lastPlay: { playerId: 'p3', combination: single('S-A', 10) },
+      trickCards: ['S-A'], passedSinceLastPlay: ['p2'],
+    });
+    expect(chooseBotMove(getPlayerView(state, 'p1'), 3)).toEqual({ type: 'PASS' });
+    const result = act(state);
+    expect(result.state.lastPlay).toBeNull();
+    expect(result.state.currentPlayerId).toBe('p1');
+  });
+
+  for (const players of [3, 4] as const) {
+    for (const seed of [11, 77, 20261011]) {
+      test(`BOT-browser-${players}-${seed}: complete seeded game conserves cards and terminates`, async () => {
+        const { loadBrowserEngine } = await import('../helpers/engine-client.js');
+        const browser = loadBrowserEngine(seed);
+        const { match } = matchHarness(players, seed);
+        let state = match.state!;
+        let actions = 0;
+        while (state.status === 'PLAYING' && actions++ < 1200) {
+          const view = deepFreeze(getPlayerView(state, state.currentPlayerId!));
+          const before = JSON.stringify(view);
+          const opponents = view.players.filter(p => p.id !== view.selfId).map(p => p.cardCount);
+          const play = browser.bot(view.selfHand, view.lastPlay?.combination ?? null, players, opponents);
+          expect(JSON.stringify(view)).toBe(before);
+          expect(play !== null || view.lastPlay !== null, 'Never pass on a free lead').toBe(true);
+          state = act(state, play ?? undefined).state;
+          expectConserved(state);
+        }
+        expect(state.status).toBe('FINISHED');
+        expect(state.finishOrder).toHaveLength(players);
+      });
+    }
+  }
+});

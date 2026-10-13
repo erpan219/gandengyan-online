@@ -8,8 +8,7 @@ function randomAIName(usedNames) {
   return name;
 }
 function avatarForName(name) {
-  const map = {'Uncle Wang':'👨','Auntie Li':'👩','Spicy Noodle':'🍜','Lucky Cat':'🐱','Dumpling Dragon':'🐉','Auntie Mei':'👵','Uncle Chen':'🧔','Panda Bingo':'🐼','Hotpot Hero':'🍲','Grandma Zhao':'👵','Uncle Fu':'👴','Little Bao':'🥟','Tea Egg Tiger':'🐯','Auntie Hua':'🌸','Noodle Ninja':'🥷','Sesame Bunny':'🐰','Uncle Long':'🐲','Mooncake Moose':'🦌','Auntie Jin':'✨','Wonton Wizard':'🧙'};
-  return map[name] || '🎴';
+  return avatarPortrait(name, true);
 }
 // Animation keying: only animate when a NEW play lands, not on re-render.
 // Each trick gets a fingerprint; animation plays only when fingerprint changes.
@@ -55,6 +54,7 @@ const App = {
 
 function showScreen(id) {
   $$('.screen').forEach(el => el.classList.toggle('active', el.id === id));
+  GdyViewport.sync();
 }
 
 function toast(msg) {
@@ -187,7 +187,7 @@ function updateRoomScreenOnline(msg) {
   const wrap = $('#room-players');
   if (wrap) {
     wrap.innerHTML = seats.map(s =>
-      `<div class="roster-row"><span class="avatar">${s.isBot ? '🤖' : '🧑'}</span>` +
+      `<div class="roster-row"><span class="avatar">${avatarPortrait(s.name, s.isBot)}</span>` +
       `<span>${esc(s.name)}</span>` +
       `${s.playerId === msg.hostId ? `<span class="tag">${t('r_host')}</span>` : ''}` +
       `${s.ready ? '<span class="tag">✓</span>' : ''}</div>`).join('');
@@ -412,14 +412,15 @@ function showScorePopup(text) {
 
 function celebrate() {
   const colors = ['#f5c04e', '#ffd700', '#ff6b6b', '#ff8c42', '#fff'];
+  const phoneSurface = $('#game-viewport.phone-game');
   for (let i = 0; i < 60; i++) {
     const p = document.createElement('div');
     p.className = 'confetti-piece';
-    p.style.left = Math.random() * 100 + 'vw';
+    p.style.left = Math.random() * 100 + (phoneSurface ? '%' : 'vw');
     p.style.background = colors[Math.floor(Math.random() * colors.length)];
     p.style.animationDuration = (2 + Math.random() * 2) + 's';
     p.style.animationDelay = (Math.random() * 0.5) + 's';
-    document.body.appendChild(p);
+    (phoneSurface || document.body).appendChild(p);
     setTimeout(() => p.remove(), 4500);
   }
 }
@@ -550,7 +551,8 @@ function autoPlayMove(seq) {
   const handIds = v.myHand.map(c => c.id);
   const prev = prevFor(v);
   const target = prev && prev.cards ? prevToCombo(prev, v.n || 3) : null;
-  const play = gdyBotPlay(handIds, target, v.n || 3, []);
+  const oppCounts = v.players.filter((p, seat) => seat !== v.mySeat && p.cardCount > 0).map(p => p.cardCount);
+  const play = gdyBotPlay(handIds, target, v.n || 3, oppCounts);
 
   if (play && play.length) {
     act('play', { ids: play });
@@ -665,6 +667,7 @@ function renderGame() {
     seatTop.style.display = sides.top !== null ? '' : 'none';
   }
   renderTableMid(v, $('#table-mid'));
+  GdyViewport.fitPlays();
 
   // my last play is shown in center pos-bottom, hide the old line
   const myLastEl = $('#my-lastplay');
@@ -829,7 +832,8 @@ function layoutHand() {
   if (!n) return;
   const cw = cards[0].offsetWidth;
   const avail = handEl.clientWidth - 20;
-  let step = cw - (window.innerWidth <= 720 ? 22 : 30);
+  const phoneLandscape = $('#game-viewport').classList.contains('phone-game');
+  let step = phoneLandscape ? cw * .58 : cw - (window.innerWidth <= 720 ? 22 : 30);
   if (cw + step * (n - 1) > avail) step = Math.max(11, (avail - cw) / (n - 1));
   for (let i = 1; i < n; i++) cards[i].style.marginLeft = (step - cw) + 'px';
 }
@@ -1029,6 +1033,7 @@ function goHome() {
 /* ---------------- boot ---------------- */
 
 function boot() {
+  GdyViewport.init();
   try {
     const savedLang = localStorage.getItem('ddz_lang');
     if (savedLang) setLang(savedLang);

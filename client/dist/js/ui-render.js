@@ -52,7 +52,7 @@ function oppPanelHTML(v, seat) {
     ? `<span class="chip timer" data-opp-timer>30</span>${thinkingDotsHTML()}` : '';
   return `<div class="opp ${isTurn ? 'turn' : ''}" data-seat="${seat}">
     <div class="opp-head">
-      <span class="avatar">${p.isAI ? avatarForName(p.name) : '🧑'}</span>
+      <span class="avatar">${p.isAI ? avatarForName(p.name) : avatarPortrait(p.name, false)}</span>
       <div class="opp-names">
         <div class="pname">${esc(p.name)}${p.isAI ? ` <span class="tag">${t('ai_tag')}</span>` : ''} ${badge}</div>
         <div class="pmeta"><span class="card-count-ring" title="${esc(t('cards_left', p.cardCount))}">${p.cardCount}</span>
@@ -124,7 +124,7 @@ function midHTML(v) {
 function myInfoHTML(v) {
   const p = v.players[v.mySeat];
   const badge = seatBadge(v, p);
-  return `<span class="avatar">🧑</span><span class="pname">${esc(p.name)}</span> ${badge}
+  return `<span class="avatar">${avatarPortrait(p.name, false)}</span><span class="pname">${esc(p.name)}</span> ${badge}
     <span class="pmeta">${t('score_pts', p.score)}</span><div class="bubble-slot"></div>`;
 }
 function actionsHTML(v) {

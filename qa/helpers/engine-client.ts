@@ -10,6 +10,7 @@ interface BrowserEngine {
   classify(cards: CardId[], players: 3 | 4): BrowserClassification;
   canBeat(candidate: Combination, target: Combination): boolean;
   findPlays(cards: CardId[], target: Combination | null, players: 3 | 4): Combination[];
+  bot(cards: CardId[], target: Combination | null, players: 3 | 4, opponents: number[]): CardId[] | null;
   hint(cards: CardId[], target: Combination | null, players: 3 | 4, opponents: number[]): CardId[] | null;
 }
 
@@ -28,7 +29,7 @@ export function loadBrowserEngine(seed = 20261011): BrowserEngine {
   runInContext(readFileSync(classifyFile, 'utf8'), context, { filename: classifyFile.pathname, timeout: 5000 });
   runInContext(readFileSync(engineFile, 'utf8'), context, { filename: engineFile.pathname, timeout: 5000 });
   runInContext(`${readFileSync(gameEngineFile, 'utf8')}\nglobalThis.qaEngine = {
-    classify: gdyClassify, canBeat: gdyCanBeat, findPlays: gdyFindPlays, hint: gdyHint
+    classify: gdyClassify, canBeat: gdyCanBeat, findPlays: gdyFindPlays, hint: gdyHint, bot: gdyBotPlay
   };`, context, { filename: gameEngineFile.pathname, timeout: 5000 });
   return context.qaEngine as BrowserEngine;
 }
