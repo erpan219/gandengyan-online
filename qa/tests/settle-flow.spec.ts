@@ -20,7 +20,17 @@ test('settle: correct win/lose popup, delayed score overlay', async ({ app }) =>
       await app.hint.click();
       await app.play.click();
     } else if (await app.pass.isVisible()) {
-      await app.pass.click();
+      // Pass renders disabled on a free lead (must play) and can linger
+      // disabled across a turn change. Check the DOM state instantly
+      // (isEnabled() would wait for the button to exist) and only click
+      // when it is actually enabled.
+      const enabled = await page.evaluate(() => {
+        const b = document.querySelector('#actions [data-act="pass"]');
+        return !!(b && !(b as HTMLButtonElement).disabled);
+      });
+      if (enabled) {
+        try { await app.pass.click({ timeout: 1000 }); } catch { /* raced a turn change; keep polling */ }
+      }
     }
     await page.waitForTimeout(250);
   }
