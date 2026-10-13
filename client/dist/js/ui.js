@@ -464,8 +464,10 @@ function playSounds(v) {
   if (cur.dbls !== prev.dbls) Snd.dbl();
   if (v.state === 'settle' && prev.state !== 'settle' && v.result) {
     const r = v.result;
-    const iWon = r.landlordWon ? v.mySeat === v.landlord : v.mySeat !== v.landlord;
-    if (iWon) { Snd.win(); celebrate(); showScorePopup('🎉 ' + t('you_win')); } else Snd.lose();
+    // Gandengyan has no landlord: winner is first in finishOrder.
+    const iWon = !!(r.finishOrder && r.finishOrder[0] === v.mySeat);
+    if (iWon) { Snd.win(); celebrate(); showScorePopup('🎉 ' + t('you_win')); }
+    else { Snd.lose(); showScorePopup(t('round_end')); }
     return;
   }
   if (v.state === 'playing' && cur.actor === v.mySeat && prev.actor !== v.mySeat) Snd.turn();
@@ -694,8 +696,8 @@ function renderGame() {
     animateLandlord(v);
   }
 
-  if (v.state === 'settle' && v.result) renderSettle(v);
-  else $('#settle-overlay').classList.add('hidden');
+  if (v.state === 'settle' && v.result) queueSettle(v);
+  else { cancelSettle(); $('#settle-overlay').classList.add('hidden'); }
 }
 
 /* Landlord reveal: banner + the kitty cards flying into the landlord's
@@ -917,6 +919,34 @@ function toggleChatPop() {
 
 /* ---------------- settle overlay ---------------- */
 
+/* The score overlay waits a few seconds so the final play stays visible.
+ * The timer is keyed on the round + finish order; if the view leaves settle
+ * (next round, exit) before it fires, the stale overlay never appears. */
+let _settleTimer = null;
+let _settleKey = null;
+let _settleShownKey = null;
+function queueSettle(v) {
+  const key = v.roundNo + ':' + (v.result.finishOrder || []).join(',');
+  if (_settleShownKey === key) return; // already revealed
+  if (_settleKey !== key) {
+    _settleKey = key;
+    clearTimeout(_settleTimer);
+    _settleTimer = setTimeout(() => {
+      _settleTimer = null;
+      if (App.view && App.view.state === 'settle' && App.view.result && App.view.roundNo === v.roundNo) {
+        renderSettle(App.view);
+        _settleShownKey = key;
+      }
+    }, 3000);
+  }
+}
+function cancelSettle() {
+  _settleKey = null;
+  _settleShownKey = null;
+  clearTimeout(_settleTimer);
+  _settleTimer = null;
+}
+
 function renderSettle(v) {
   const r = v.result;
   if (!r || !r.finishOrder) return;
@@ -973,6 +1003,7 @@ function confirmExit() {
 
 function goHome() {
   clearJoinTimer();
+  cancelSettle();
   const wasOnline = App.role === 'online';
   App._netSession = (App._netSession || 0) + 1;
   if (App.game) { App.game.stop(); App.game = null; }
