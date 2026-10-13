@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures/browser';
 
+// Page global from client/dist/js/ui.js (top-level const, not on window).
+declare const App: any;
+
 // Settle flow: the end-of-round popup must say "You Win!" only when the
 // player actually won (finishOrder[0] === mySeat), otherwise "Round ended".
 // The score overlay must wait a few seconds so the final play stays visible.
@@ -24,7 +27,7 @@ test('settle: correct win/lose popup, delayed score overlay', async ({ app }) =>
   expect(settled).toBe(true);
 
   const iWon = await page.evaluate(() => {
-    const v = (globalThis as any).App?.view ?? (typeof App !== 'undefined' ? (App as any).view : null);
+    const v = App.view;
     return !!(v && v.result && v.result.finishOrder && v.result.finishOrder[0] === v.mySeat);
   });
 
