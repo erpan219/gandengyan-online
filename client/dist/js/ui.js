@@ -585,6 +585,37 @@ function prevToCombo(prev, playerCount) {
 }
 
 
+/* Doudizhu-style table transitions: beaten plays fade/slide out while the new
+ * play deals in; pass bubbles linger ~1.6s then fade. midHTML() already keys
+ * animations to new plays/passes via fingerprints; this handles the outgoing
+ * side, which a plain innerHTML swap would drop instantly. */
+function renderTableMid(v, mount) {
+  // Snapshot the currently displayed plays per table spot.
+  const before = new Map();
+  mount.querySelectorAll('.table-spot').forEach(spot => {
+    const pos = [...spot.classList].find(c => c.indexOf('ts-') === 0);
+    const cards = spot.querySelector(':scope > .table-cards:not(.leaving)');
+    if (pos && cards) before.set(pos, cards.cloneNode(true));
+  });
+  mount.innerHTML = midHTML(v);
+  const center = mount.querySelector('#center-table') || mount;
+  // Overlay fading ghosts for plays that were replaced.
+  for (const [pos, oldCards] of before) {
+    const spot = center.querySelector('.table-spot.' + pos);
+    const replaced = !spot || !spot.querySelector(':scope > .table-cards');
+    if (!replaced) continue;
+    oldCards.classList.add('leaving');
+    oldCards.classList.remove('no-anim');
+    const ghost = document.createElement('div');
+    ghost.className = 'table-spot ' + pos;
+    ghost.style.pointerEvents = 'none';
+    ghost.appendChild(oldCards);
+    center.appendChild(ghost);
+    setTimeout(() => ghost.remove(), 400);
+  }
+}
+
+
 function renderGame() {
   const v = App.view;
   if (!v) {
@@ -633,7 +664,7 @@ function renderGame() {
     seatTop.innerHTML = sides.top !== null ? oppPanelHTML(v, sides.top) : '';
     seatTop.style.display = sides.top !== null ? '' : 'none';
   }
-  $('#table-mid').innerHTML = midHTML(v);
+  renderTableMid(v, $('#table-mid'));
 
   // my last play is shown in center pos-bottom, hide the old line
   const myLastEl = $('#my-lastplay');

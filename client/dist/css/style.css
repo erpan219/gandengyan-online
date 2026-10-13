@@ -215,11 +215,20 @@ button.off { opacity: .38; text-decoration: line-through; }
 .table-cards .card:first-child { margin-left: 0; }
 .table-cards.bomb-play .card { animation: bombBlast .5s ease-out; }
 .table-cards.no-anim, .table-cards.no-anim .card, .table-pass.no-anim { animation: none !important; }
+/* Doudizhu-style: a beaten play fades/slides out while the new one deals in */
+.table-cards.leaving { animation: cardsOut .3s ease-in forwards !important; pointer-events: none; }
+@keyframes cardsOut {
+  to { transform: translateY(-26px) scale(.82); opacity: 0; filter: blur(3px); }
+}
 .table-pass {
   font-size: 30px; font-weight: 900; color: #ffd700; letter-spacing: 6px; white-space: nowrap; text-align: center;
   text-shadow: 2px 2px 0 #7a1f1f, -1px -1px 0 #7a1f1f, 0 0 18px rgba(255,215,0,.5);
   animation: passIn .25s ease-out;
 }
+/* Doudizhu-style: new pass bubbles pop in, linger ~1.6s, then fade out.
+ * Re-rendered (no-anim) passes stay visible — animation: none still wins. */
+.table-pass:not(.no-anim) { animation: passIn .25s ease-out, passFadeOut .35s ease-in 1.7s forwards; }
+@keyframes passFadeOut { to { opacity: 0; } }
 .table-pass:lang(en) { letter-spacing: 2px; }
 
 /* ---------- cards ---------- */

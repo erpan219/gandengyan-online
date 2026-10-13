@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-const browserFiles = /(?:lobby|multiplayer|reconnect|i18n|accessibility|ui)\.spec\.ts/;
+const browserFiles = /(?:lobby|multiplayer|reconnect|i18n|accessibility|ui|table-transitions)\.spec\.ts/;
 // WebKit (software rendering in CI) is markedly slower than Chromium/Firefox,
 // and the full-hand multiplayer test performs up to 170 UI actions against a
 // re-rendering game view. These budgets cover that slowness; they do not
