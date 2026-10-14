@@ -102,6 +102,11 @@ test.describe('phone landscape surface', () => {
 
   for (const players of [3, 4] as const) {
     test(`${players} seats fit portrait fallback and native landscape with usable cards and controls`, async ({ app }, testInfo) => {
+      // The viewport loop sits idle longer than the 30s turn timeout on slow
+      // WebKit; without this, auto-play fires mid-test and changes the hand
+      // the geometry assertions depend on. Set before the game starts so the
+      // timeout is never armed. Scoped to this test only.
+      await app.page.evaluate(() => { (window as any).__qaNoTurnTimeout = true; });
       await app.practice(players);
       const shell = app.page.locator('#game-viewport');
       await expect(shell).toHaveClass(/portrait-game/);
@@ -194,13 +199,16 @@ test.describe('phone landscape surface', () => {
       await app.play.click();
       const played = app.page.locator('.ts-bottom .table-cards:not(.leaving) .card');
       await expect(played).toHaveCount(11);
+      // The fan settles within the deal animation on fast engines, but on slow
+      // WebKit under harness load the same geometry can take longer to
+      // observe; the assertion is that it FITS, so use the default budget.
       await expect.poll(async () => played.evaluateAll(cards => {
         const center = document.getElementById('center-table')!.getBoundingClientRect();
         return cards.every(card => {
           const r = card.getBoundingClientRect();
           return r.left >= center.left - 1 && r.right <= center.right + 1 && r.top >= center.top - 1 && r.bottom <= center.bottom + 1;
         });
-      }), { timeout: 1_000 }).toBe(true);
+      }), { timeout: 10_000 }).toBe(true);
       await app.page.screenshot({ path: testInfo.outputPath(`${players}-players-long-play-568x320.png`) });
       expect(app.wire.pageErrors).toEqual([]);
     });

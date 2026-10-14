@@ -3,7 +3,11 @@ import type { BrowserPlayer } from '../fixtures/browser';
 import type { GameFrame } from '../helpers/browser-protocol';
 
 for (const count of [3, 4] as const) {
+  // 4 contexts + video recording + Pixel 7 emulation exceeds the 60s
+  // default on a loaded VM (WebKit projects already get 300s for the same
+  // reason). The budget covers harness slowness; it weakens no assertion.
   test(`${count} isolated contexts share a room while each receives only its own hand @key-flow`, async ({ createPlayers }) => {
+    if (count === 4) test.setTimeout(180_000);
     const players = await createPlayers(count);
     await startHumanRoom(players, count);
     const frames = players.map(player => player.app.wire.game);

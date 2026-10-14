@@ -6,6 +6,11 @@ import { test, expect } from '../fixtures/browser';
 test('table transitions: beaten play fades out, pass bubble fades', async ({ app }) => {
   await app.practice(3);
   const page = app.page;
+  // WebKit's click-stability checks can stall 6s+ per click; without this,
+  // the 30s server turn timeout fires mid-test and auto-play takes over,
+  // detaching the Play button so later clicks time out. Same guard as the
+  // phone-landscape and online-language tests.
+  await page.evaluate(() => { (window as any).__qaNoTurnTimeout = true; });
   const errs: string[] = [];
   page.on('pageerror', e => errs.push(e.message));
 
@@ -13,17 +18,22 @@ test('table transitions: beaten play fades out, pass bubble fades', async ({ app
   let ghostSeen = false;
   for (let i = 0; i < 12 && !ghostSeen; i++) {
     if (await app.hint.isVisible()) {
-      await app.hint.click();
-      await app.play.click();
+      await app.hint.click({ force: true });
+      await app.play.click({ force: true });
       try {
+        // NOTE: waitForFunction(fn, arg, options) — the timeout MUST be the
+        // third arg. Passing it second silently makes it the (ignored) arg
+        // and the wait falls back to the 30s default, long enough for the
+        // server turn timeout to auto-play the hand mid-test.
         await page.waitForFunction(
           () => document.querySelectorAll('.table-cards.leaving').length > 0,
+          null,
           { timeout: 5000 },
         );
         ghostSeen = true;
       } catch { /* this play wasn't beaten; keep going */ }
     } else if (await app.pass.isVisible()) {
-      await app.pass.click();
+      await app.pass.click({ force: true });
       await page.waitForTimeout(400);
     } else {
       await page.waitForTimeout(800);

@@ -92,7 +92,13 @@ export const test = serverTest.extend<BrowserFixtures>({
     for (const [i, app] of observed.entries()) {
       if (preserveVideo) {
         await testInfo.attach(`player-${i + 1}-protocol`, { body: app.wire.diagnostic(), contentType: 'application/json' });
-        if (!app.page.isClosed()) await testInfo.attach(`player-${i + 1}-screen`, { body: await app.page.screenshot({ fullPage: true }), contentType: 'image/png' });
+        // Diagnostics must never fail the test: a full-page screenshot can
+        // hang under load (4 contexts) after the test body already passed.
+        if (!app.page.isClosed()) {
+          try {
+            await testInfo.attach(`player-${i + 1}-screen`, { body: await app.page.screenshot({ fullPage: true, timeout: 5000 }), contentType: 'image/png' });
+          } catch { /* screenshot is best-effort diagnostics only */ }
+        }
       }
     }
     for (const [i, player] of all.entries()) {
