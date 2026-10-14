@@ -24,6 +24,23 @@ npm run report
 
 Node22 LTS is recommended; QA dependency versions and lockfile are pinned. The app's own dependency resolution follows its package manifests. Review future app dependency changes independently.
 
+## Tiered test gate (added Oct 2026 — the full matrix is ~2h, so match the gate to the change)
+
+Pick the tier by blast radius, not by habit. A full 6-project matrix for a test-only change wastes ~2h and, worse, a VM replacement mid-run costs the whole run again. Keep every local run under ~30 min — split by project when a full run is needed.
+
+| Tier | When | Local gate | Approx. time |
+|---|---|---|---|
+| **1 — Small** | One spec file, test-only change, or a small CSS/i18n tweak | `npm run typecheck` + `npm run test:engine` + the affected spec file(s) on **every** project, e.g. `npm run test:webkit-desktop -- tests/table-transitions.spec.ts` | 5–15 min |
+| **2 — Medium** | Client logic, `ui.js`/`ui-render.js`/`game.js`, a fixture used by many tests, or several spec files | `npm run typecheck` + `npm run test:engine` + full `npm run test:chromium` + the affected spec files on every other project | 30–45 min |
+| **3 — Major** | Game engine, protocol, server, shared code, rules, or anything touching game correctness | Full matrix: `npm run test:engine` + `npm run test:browsers` + `npm run test:devices` (or all six `test:<project>` scripts) | ~2h |
+
+Rules:
+- **Tier 1/2 rely on CI as the full-matrix backstop.** CI runs all 7 jobs in parallel (~14 min). Push after the targeted local gate passes, then confirm CI is green. Do not skip the targeted local gate — it is what prevents a push from spamming failure emails.
+- **Tier 3 runs the full local matrix before pushing**, same as before.
+- **Never invent a skip to make a run green.** An unexpected failure is investigated (trace/video + root cause) before any push — the standing "investigate before pushing" rule applies at every tier.
+- **Logs for long runs go under `~/workspace/`, not `/tmp`** — `/tmp` is wiped on VM replacement, along with the run itself.
+- **One worker is intentional** (see Safety and isolation): the fixture binds port 3000 and the server rate-limits room creation to 5/min/IP. Do not parallelize with `workers > 1` without first giving each worker its own port and accounting for the limiter — otherwise tests collide and flake.
+
 ## Safety and isolation
 
 Browser tests start a fresh actual local server for every test on `http://localhost:3000`. Stop your development server first. An occupied port fails safely: this pack will not kill or reuse an unknown process. One worker is intentional, because the server's allowed-origin list is fixed and its room-creation limiter is five rooms per minute per IP. Restarting a disposable server isolates state without bypassing production protections.
