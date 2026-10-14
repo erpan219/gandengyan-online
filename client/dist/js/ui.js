@@ -54,6 +54,13 @@ const App = {
 
 function showScreen(id) {
   $$('.screen').forEach(el => el.classList.toggle('active', el.id === id));
+  // Keep the page title in sync with the visible screen (WCAG 2.4.2)
+  const titles = {
+    'screen-home': 'Gandengyan · 干瞪眼',
+    'screen-room': App.code ? `Room ${App.code} · Gandengyan` : 'Room · Gandengyan',
+    'screen-game': 'Playing · Gandengyan',
+  };
+  document.title = titles[id] || 'Gandengyan · 干瞪眼';
   GdyViewport.sync();
 }
 
@@ -190,7 +197,7 @@ function updateRoomScreenOnline(msg) {
       `<div class="roster-row"><span class="avatar">${avatarPortrait(s.name, s.isBot)}</span>` +
       `<span>${esc(s.name)}</span>` +
       `${s.playerId === msg.hostId ? `<span class="tag">${t('r_host')}</span>` : ''}` +
-      `${s.ready ? '<span class="tag">✓</span>' : ''}</div>`).join('');
+      `${s.ready ? '<span class="tag"><span aria-hidden="true">✓</span><span class="sr-only">ready</span></span>' : ''}</div>`).join('');
   }
   // Show start button for host, ready button for guests
   const isHost = msg.hostId && Online.playerId === msg.hostId;
@@ -515,7 +522,15 @@ function startTurnTimer() {
   App.turnSeq++;
   const seq = App.turnSeq;
   App.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
-  App.turnTimer = setTimeout(() => onTurnTimeout(seq), TURN_TIMEOUT_MS);
+  // QA-only: the phone-landscape and online-language tests sit idle during a
+  // human turn longer than the timeout on slow WebKit, and auto-play would
+  // change the hand mid-test. The flag is set per-test via page.evaluate
+  // (never by the shared fixture), so every other test still exercises the
+  // real timeout. The countdown ticker below still runs, so the timer UI
+  // keeps displaying.
+  if (!window.__qaNoTurnTimeout) {
+    App.turnTimer = setTimeout(() => onTurnTimeout(seq), TURN_TIMEOUT_MS);
+  }
   // Start the ticker after DOM updates
   setTimeout(startTurnTicker, 50);
 }
@@ -628,6 +643,9 @@ function renderGame() {
   if (v.state === 'settle' || v.state === 'gameover') {
     clearTurnTimer();
     App.autoPlay = false;
+    // Clear the turn announcer so a stale "X is thinking" is not re-read.
+    const announcer = $('#turn-announcer');
+    if (announcer) announcer.textContent = '';
   }
   // Turn timers: mine on my turn; an approximate countdown on the active
   // opponent's panel otherwise (resets on every action broadcast).
@@ -636,6 +654,15 @@ function renderGame() {
   if (v.actor !== App._lastActor) {
     App._lastActor = v.actor;
     App._oppDeadline = Date.now() + TURN_TIMEOUT_MS;
+    // Announce turn changes to screen readers. The visible status text is
+    // not a live region (it re-renders constantly), so this dedicated
+    // announcer speaks only when the actor actually changes.
+    const announcer = $('#turn-announcer');
+    if (announcer && v.state === 'playing' && v.actor !== null && v.actor !== undefined) {
+      announcer.textContent = v.actor === v.mySeat
+        ? t('your_turn')
+        : t('thinking', v.players[v.actor].name);
+    }
   }
   if (isMyTurn) {
     if (App.autoPlay) {
@@ -730,8 +757,18 @@ function invalidPlayFeedback() {
    toggles one card. Bound once in boot() — the hand element persists. */
 function bindHandDrag() {
   const handEl = $('#my-hand');
-  // Keyboard support: Enter/Space toggles card selection
+  // Keyboard support: Enter/Space toggles card selection; Left/Right arrows
+  // move focus between cards so 18 cards don't each need a Tab stop.
   handEl.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const cards = [...handEl.querySelectorAll('.card[data-id]')];
+      const idx = cards.indexOf(e.target.closest('.card[data-id]'));
+      if (idx < 0) return;
+      e.preventDefault();
+      const next = cards[idx + (e.key === 'ArrowRight' ? 1 : -1)];
+      if (next) next.focus();
+      return;
+    }
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const card = e.target.closest('.card[data-id]');
     if (!card) return;
@@ -859,14 +896,34 @@ function renderBubbles() {
 
 function toggleChatPop() {
   const pop = $('#chat-pop');
-  if (!pop.classList.contains('hidden')) { pop.classList.add('hidden'); return; }
+  const btn = $('#btn-chat');
+  const close = () => {
+    pop.classList.add('hidden');
+    if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
+  };
+  if (!pop.classList.contains('hidden')) { close(); return; }
   pop.innerHTML = t('chat').map((p, i) => `<button data-chat="${i}">${esc(p)}</button>`).join('');
   pop.classList.remove('hidden');
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  const first = pop.querySelector('[data-chat]');
+  if (first) first.focus();
   $$('#chat-pop [data-chat]').forEach(b => b.onclick = () => {
     act('chat', { id: +b.dataset.chat });
     pop.classList.add('hidden');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   });
 }
+
+/* Escape closes the chat pop and returns focus to the chat button. */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const pop = $('#chat-pop');
+  if (!pop || pop.classList.contains('hidden')) return;
+  e.preventDefault();
+  pop.classList.add('hidden');
+  const btn = $('#btn-chat');
+  if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
+});
 
 /* ---------------- settle overlay ---------------- */
 
@@ -918,17 +975,50 @@ function renderSettle(v) {
   }).join('');
   $('#settle-overlay').innerHTML = `<div class="settle-box ${iWon ? 'won' : 'lost'}">
     ${iWon ? '<div class="settle-burst"></div>' : ''}
-    <h2>${iWon ? t('s_youwin') : t('s_youlose')}</h2>
+    <h2 id="settle-title">${iWon ? t('s_youwin') : t('s_youlose')}</h2>
     <p class="personal">${t('s_place', myPlace)}</p>
     <div class="settle-rows">${rows}</div>
     <div class="big-btns">
       <button id="btn-again" class="primary">${t('b_again')}</button>
       <button id="btn-settle-home">${t('b_home')}</button>
     </div></div>`;
-  $('#settle-overlay').classList.remove('hidden');
+  const overlay = $('#settle-overlay');
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'settle-title');
+  overlay.classList.remove('hidden');
   $('#btn-again').onclick = () => act('again');
   $('#btn-settle-home').onclick = goHome;
+  // Initial focus on the primary action, mirroring the help modal pattern
+  $('#btn-again').focus();
 }
+
+/* Settle dialog keyboard: Escape takes the primary action (Play Again);
+   Tab is trapped inside while the overlay is open. Skipped while the help
+   modal is open so one Escape never fires two actions. */
+document.addEventListener('keydown', (e) => {
+  const overlay = $('#settle-overlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  if (!$('#help-modal').classList.contains('hidden')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    act('again');
+    return;
+  }
+  if (e.key === 'Tab') {
+    const focusable = overlay.querySelectorAll('button, [href], [tabindex]:not([tabindex="-1"])');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+});
 
 /* ---------------- navigation / cleanup ---------------- */
 

@@ -18,10 +18,12 @@ function cardHTML(c, cls, laizi, interactive) {
   // Only actionable hand cards get button semantics; played cards are descriptive
   const a11y = interactive
     ? ` role="button" tabindex="0" aria-pressed="${selected}" aria-label="${label}${selected ? ', selected' : ''}"`
-    : ` aria-label="${label}"`;
+    : ` role="img" aria-label="${label}"`;
   if (isJoker) {
+    // JOKER as one letter per line (spans), never re-wrapped into "JO / K / E / R"
+    // by the column width. The jester glyph is the card's center pip.
     return `<div class="card jk ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
-      `<span class="jk-txt">JOKER</span><span class="cs">🃏</span></div>`;
+      `<span class="jk-txt"><i>J</i><i>O</i><i>K</i><i>E</i><i>R</i></span><span class="cs">🤡</span></div>`;
   }
   return `<div class="card ${red ? 'red' : ''} ${cls}${lz}" data-id="${c.id}"${a11y}>` +
     `<span class="cr">${RANK_LABELS[c.r]}</span><span class="cs">${SUITS[c.s]}</span></div>`;

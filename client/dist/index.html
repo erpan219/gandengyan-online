@@ -13,12 +13,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="干瞪眼">
-<link rel="stylesheet" href="css/style.css?v20261013b">
+<link rel="stylesheet" href="css/style.css?v20261013d">
 </head>
 <body>
 
-<div id="toast-wrap"></div>
+<a class="skip-link" href="#main-content">Skip to content</a>
 
+<div id="toast-wrap" aria-live="polite" aria-atomic="false"></div>
+
+<main id="main-content">
 <!-- ===================== HOME ===================== -->
 <section id="screen-home" class="screen active">
   <header class="home-head">
@@ -34,7 +37,7 @@
 
   <div class="panel">
     <label class="field-label" id="t-name" for="inp-name"></label>
-    <input id="inp-name" maxlength="12" autocomplete="off">
+    <input id="inp-name" maxlength="12" autocomplete="name">
 
     <label class="field-label" id="t-mode"></label>
     <div class="mode-grid">
@@ -84,6 +87,7 @@
 
 <!-- ===================== GAME ===================== -->
 <section id="screen-game" class="screen">
+  <div id="turn-announcer" class="sr-only" aria-live="polite"></div>
   <div id="table">
     <div id="table-top">
       <button id="btn-exit-game" class="ghost small">←</button>
@@ -107,13 +111,14 @@
       <div id="my-hand"></div>
       <div id="my-bar">
         <div id="my-info"></div>
-        <div id="chat-bar"><button id="btn-chat" class="ghost small">💬</button></div>
+        <div id="chat-bar"><button id="btn-chat" class="ghost small" aria-expanded="false">💬</button></div>
       </div>
     </div>
   </div>
   <div id="chat-pop" class="hidden"></div>
   <div id="settle-overlay" class="hidden"></div>
 </section>
+</main>
 
 <!-- ===================== HELP ===================== -->
 <div id="help-modal" class="hidden" aria-labelledby="t-help-title">
@@ -123,7 +128,7 @@
   </div>
 </div>
 
-<script src="js/i18n.js?v20261013b"></script>
+<script src="js/i18n.js?v20261013d"></script>
 <script src="js/sound.js?v20261013a"></script>
 <script src="js/music.js"></script>
 <script src="js/gdy-shared-deck.js?v20261011a"></script>
@@ -134,8 +139,8 @@
 <script src="js/net.js?v20261013a"></script>
 <script src="js/online.js?v=20261011a"></script>
 <script src="js/avatars.js?v20261013a"></script>
-<script src="js/ui-render.js?v20261013b"></script>
+<script src="js/ui-render.js?v20261013d"></script>
 <script src="js/game-viewport.js?v20261013a"></script>
-<script src="js/ui.js?v20261013c"></script>
+<script src="js/ui.js?v20261013f"></script>
 </body>
 </html>
