@@ -7,8 +7,7 @@ import { RoomManager } from './rooms_manager.js';
 import { isValidToken } from './rooms.js';
 import { attachMatch, Match } from './match.js';
 import type { ClientMsg, ServerMsg } from './protocol.js';
-import type { Seat } from './rooms.js';
-import type { Room } from './rooms.js';
+import type { Seat, Room } from './rooms.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -113,17 +112,19 @@ const RESULTS_GRACE_MS = 120_000;
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 const sweepTimer = setInterval(() => {
-  (manager as any).sweep?.();
+  manager.sweep();
 }, 10 * 60 * 1000);
-
-function protocolMessage(type: string, payload: Record<string, unknown> = {}): ServerMsg {
-  return { type, ...payload } as unknown as ServerMsg;
-}
 
 function send(ws: WebSocket, msg: ServerMsg): void {
   if ((ws as unknown as { readyState?: number }).readyState === 1) {
     ws.send(JSON.stringify(msg));
   }
+}
+
+/** The single SESSION_EXPIRED response: session gone, client must rejoin manually. */
+function sendSessionExpired(ws: WebSocket): void {
+  send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
+    message: 'Session expired. Please rejoin the room.' });
 }
 
 function roomStateMsg(room: Room): ServerMsg {
@@ -178,7 +179,7 @@ function freeSeat(room: Room, seat: Seat): void {
       playerId: `empty:${idx}`,
       name: '',
       isBot: false,
-token: '',
+      token: '',
       ready: false,
       ws: null,
       connected: false,
@@ -307,24 +308,21 @@ wss.on('connection', (ws: WebSocket, req) => {
         if (msg.token === undefined) break;
         // R4: malformed tokens can never resolve to a session.
         if (!isValidToken(msg.token)) {
-          send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
-            message: 'Session expired. Please rejoin the room.' });
+          sendSessionExpired(ws);
           break;
         }
         const found = manager.findByToken(msg.token);
         if (!found) {
           // Actionable response: the session is gone (expired grace or freed
           // seat). Tell the client to rejoin manually instead of hanging.
-          send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
-            message: 'Session expired. Please rejoin the room.' });
+          sendSessionExpired(ws);
           break;
         }
         // R3: one active binding per socket. A bound socket may only re-hello
         // its own seat (idempotent); anything else is rejected, never rebound.
         if (seat) {
           if (found.seat.playerId !== seat.playerId) {
-            send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
-              message: 'Session expired. Please rejoin the room.' });
+            sendSessionExpired(ws);
             break;
           }
         }
@@ -389,8 +387,7 @@ wss.on('connection', (ws: WebSocket, req) => {
         // rejected here; unknown-but-wellformed tokens are rejected by
         // addHuman with SESSION_EXPIRED (never silently mint a new seat).
         if (msg.token !== undefined && !isValidToken(msg.token)) {
-          send(ws, { type: 'ERROR', code: 'SESSION_EXPIRED',
-            message: 'Session expired. Please rejoin the room.' });
+          sendSessionExpired(ws);
           break;
         }
         const room = manager.getRoom(msg.roomCode);

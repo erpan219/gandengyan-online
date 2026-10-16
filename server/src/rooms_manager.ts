@@ -1,5 +1,4 @@
-import { Room, Seat, normToken } from './rooms.js';
-import { isValidToken } from './rooms.js';
+import { Room, Seat, normToken, isValidToken } from './rooms.js';
 import { randomBytes } from 'node:crypto';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

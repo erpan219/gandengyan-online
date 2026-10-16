@@ -16,6 +16,8 @@ export class Match {
   public scores: Record<string, number> = {};
   /** Bombs played this hand: playerId -> {bombs, rockets} */
   private handBombs: Record<string, { bombs: number; rockets: number }> = {};
+  /** Per-hand scores for the just-finished hand (for result display). */
+  private handScores: Record<string, number> = {};
 
   constructor(room: Room) {
     this.room = room;
@@ -329,9 +331,6 @@ export class Match {
     this.scheduleTurn();
     return true;
   }
-
-  /** Per-hand scores for the just-finished hand (for result display). */
-  private handScores: Record<string, number> = {};
 
   /**
    * R7: when a hand ends, the host may be disconnected (PLAYING disconnects
